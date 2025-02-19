@@ -1,106 +1,80 @@
-import json
-
 from starlette.responses import JSONResponse
 from starlette.routing import Route, Mount
 from starlette.exceptions import HTTPException
+
+
+from citybikes.gbfs.types import GBFS3
 
 
 LANGUAGES = ["en"]
 VERSIONS = ["3.0"]
 
 
-class RowObj:
-    def __init__(self, row):
-        for k, v in row.items():
-            setattr(self, k, v)
-        self._d = row
-
-    def dump(self):
-        return dict(filter(lambda i: i[1] not in [None, []], self._d.items()))
-
-
-class Network(RowObj):
-    def __init__(self, row):
-        super().__init__(row)
-        self.meta = RowObj(json.loads(row["meta"]))
-
-
-class Station(RowObj):
-    def __init__(self, row):
-        super().__init__(row)
-        self.stat = RowObj(json.loads(row["stat"]))
-        self.extra = RowObj(json.loads(row["stat"])["extra"])
-
-
-class GbfsStationInfo(Station):
-    def __init__(self, row):
-        super().__init__(row)
+# XXX These go somewhere
+class Station2GbfsStationInfo(GBFS3.StationInfo):
+    def __init__(self, station):
         d = {
-            "station_id": self.hash,
-            "name": i18n(self.name),
-            "lat": GbfsFloat(self.latitude),
-            "lon": GbfsFloat(self.longitude),
-            "address": getattr(self.extra, "address", None),
-            "post_code": getattr(self.extra, "post_code", None),
-            "rental_methods": getattr(self.extra, "payment", []),
+            "station_id": station.uid,
+            "name": i18n(station.name),
+            "lat": station.latitude,
+            "lon": station.longitude,
+            "address": station.extra.address,
+            "post_code": station.extra.post_code,
+            "rental_methods": station.extra.payment,
             # XXX Virtual
             # "is_virtual_station": ...
-            "capacity": getattr(self.extra, "slots", None),
-            "rental_uris": getattr(self.extra, "rental_uris", None),
+            "capacity": station.extra.slots,
+            "rental_uris": station.extra.rental_uris,
         }
 
-        if hasattr(self.extra, "payment-terminal"):
-            m = set(d["rental_methods"] + ["key", "creditcard"])
+        if station.extra.payment_terminal is not None:
+            m = set(d["rental_methods"] or [] + ["key", "creditcard"])
             d["rental_methods"] = list(m)
 
-        self._d = d
+        super().__init__(**d)
 
 
-class GbfsStationStatus(Station):
-    @property
-    def vehicle_types(self):
+class Station2GbfsStationStatus(GBFS3.StationStatus):
+    @staticmethod
+    def vehicle_types(station):
         # First detect if we have types at all, because then we default to
         # normal bikes
 
-        types = [(t, v) for t, v in Vehicles.def_map.items() if hasattr(self.extra, t)]
+        extra = station.extra.dict(exclude_none=True)
+
+        types = [(t, v) for t, v in Vehicles.def_map.items() if t in extra]
 
         if not types:
             return [
                 {
                     "vehicle_type_id": Vehicles.normal_bike["vehicle_type_id"],
-                    "count": self.stat.bikes,
+                    "count": station.stat.bikes,
                 }
             ]
 
         return [
             {
                 "vehicle_type_id": getattr(Vehicles, v)["vehicle_type_id"],
-                "count": getattr(self.extra, t),
+                "count": getattr(station.extra, t),
             }
             for t, v in types
         ]
 
-    def __init__(self, row):
-        super().__init__(row)
-
+    def __init__(self, station):
+        stat = station.stat.dict(exclude_none=True)
         d = {
-            "station_id": self.hash,
-            "num_vehicles_available": self.stat.bikes,
-            "vehicle_types_available": self.vehicle_types,
-            "num_docks_available": self.stat.free,
+            "station_id": station.uid,
+            "num_vehicles_available": station.bikes,
+            "vehicle_types_available": self.vehicle_types(station),
+            "num_docks_available": station.free,
             # pybikes ignores non installed stations
             "is_installed": True,
             # XXX status ? and if not available, default to true
-            "is_renting": getattr(self.stat, "online", True),
-            "is_returning": getattr(self.stat, "online", True),
-            "last_reported": self.stat.timestamp,
+            "is_renting": stat.get("online", True),
+            "is_returning": stat.get("online", True),
+            "last_reported": station.timestamp,
         }
-
-        if hasattr(self.extra, "payment-terminal"):
-            m = set(d["rental_methods"] + ["key", "creditcard"])
-            d["rental_methods"] = list(m)
-
-        self._d = d
+        super().__init__(**d)
 
 
 def i18n(text):
@@ -166,94 +140,34 @@ class Gbfs:
         self.ttl = 0
         self.base_url = f"{self.endpoint}/{self.version}"
 
-    async def base_response(self, db, uid):
-        return {
-            "last_updated": await self.get_last_updated(db, uid),
-            "ttl": self.ttl,
-            "version": self.version,
-            "data": {},
-        }
-
-    async def network_exists(self, db, uid):
-        cur = await db.execute(
-            """
-            SELECT 1 from networks
-            WHERE tag = ?
-            LIMIT 1
-        """,
-            (uid,),
-        )
-        row = await cur.fetchone()
-
-        if not row:
-            raise HTTPException(status_code=404)
-
-        return True
-
-    async def get_network(self, db, uid):
-        cur = await db.execute(
-            """
-            SELECT * FROM networks
-            WHERE tag = ?
-            LIMIT 1
-        """,
-            (uid,),
-        )
-
-        row = await cur.fetchone()
-
-        if not row:
-            raise HTTPException(status_code=404)
-
-        return Network(row)
-
-    async def get_last_updated(self, db, uid=None):
-        if uid:
-            cur = await db.execute(
-                """
-                SELECT MAX(stat->>'timestamp') as timestamp FROM stations
-                WHERE network_tag = ?
-            """,
-                (uid,),
-            )
-        else:
-            cur = await db.execute(
-                """
-                SELECT MAX(stat->>'timestamp') as timestamp FROM stations
-            """
-            )
-
-        last_updated = (await cur.fetchone())["timestamp"]
-        return last_updated
-
     async def gbfs(self, request, db, uid):
-        assert await self.network_exists(db, uid)
-
         base_url = f"{self.base_url}/{uid}"
 
-        return {
-            "feeds": [
-                {
-                    "name": "system_information",
-                    "url": f"{base_url}/system_information.json",
-                },
-                {
-                    "name": "vehicle_types",
-                    "url": f"{base_url}/vehicle_types.json",
-                },
-                {
-                    "name": "station_information",
-                    "url": f"{base_url}/station_information.json",
-                },
-                {
-                    "name": "station_status",
-                    "url": f"{base_url}/station_status.json",
-                },
-            ]
-        }
+        return GBFS3.Feeds(
+            **{
+                "feeds": [
+                    {
+                        "name": "system_information",
+                        "url": f"{base_url}/system_information.json",
+                    },
+                    {
+                        "name": "vehicle_types",
+                        "url": f"{base_url}/vehicle_types.json",
+                    },
+                    {
+                        "name": "station_information",
+                        "url": f"{base_url}/station_information.json",
+                    },
+                    {
+                        "name": "station_status",
+                        "url": f"{base_url}/station_status.json",
+                    },
+                ]
+            }
+        )
 
     async def system_information(self, request, db, uid):
-        network = await self.get_network(db, uid)
+        network = await db.get_network(uid)
 
         data = {
             "system_id": uid,
@@ -270,31 +184,13 @@ class Gbfs:
         if network.meta.company:
             data["operator"] = i18n(" | ".join(network.meta.company))
 
-        if hasattr(network.meta, "license") and "url" in network.meta.license:
-            data["license_url"] = network.meta.license["url"]
+        if network.meta.license and network.meta.license.url:
+            data["license_url"] = network.meta.license.url
 
-        return data
+        return GBFS3.SystemInfo(**data)
 
     async def vehicle_types(self, request, db, uid):
-        # match vehicle types according to station information heuristics
-        # XXX ideally, we should set these on the network level in pybikes
-        # so this info would be in meta
-
-        cur = await db.execute(
-            """
-            SELECT
-                   max(stat->>'extra'->>'normal_bikes' IS NOT NULL) as normal_bikes,
-                   max(stat->>'extra'->>'ebikes' IS NOT NULL) as ebikes,
-                   max(stat->>'extra'->>'cargo' IS NOT NULL) as cargo,
-                   max(stat->>'extra'->>'ecargo' IS NOT NULL) as ecargo,
-                   max(stat->>'extra'->>'kid_bikes' IS NOT NULL) as kid_bikes
-            FROM stations
-            WHERE network_tag = ?
-            GROUP BY network_tag
-        """,
-            (uid,),
-        )
-        vehicle_types_q = await cur.fetchone()
+        vehicle_types_q = await db.vehicle_types(uid)
 
         types = [(t, v) for t, v in Vehicles.def_map.items() if vehicle_types_q[t]]
 
@@ -305,73 +201,38 @@ class Gbfs:
             vehicle_types = [getattr(Vehicles, v) for _, v in types]
 
         data = {"vehicle_types": vehicle_types}
-        return data
+
+        return GBFS3.VehicleTypes(**data)
 
     async def station_information(self, request, db, uid):
-        network = await self.get_network(db, uid)
-        cur = await db.execute(
-            """
-            SELECT * FROM stations
-            WHERE network_tag = ?
-            AND hash IN (
-                SELECT value FROM json_each(?)
-            )
-            ORDER BY hash
-        """,
-            (
-                uid,
-                network.stations,
-            ),
-        )
-        stations = map(lambda r: GbfsStationInfo(r).dump(), await cur.fetchall())
-        return {
-            "stations": list(stations),
-        }
+        stations = await db.get_stations(uid)
+        stations = map(lambda s: Station2GbfsStationInfo(s), stations)
+        return GBFS3.StationInfoR(stations=list(stations))
 
     async def station_status(self, request, db, uid):
-        network = await self.get_network(db, uid)
-        cur = await db.execute(
-            """
-            SELECT * FROM stations
-            WHERE network_tag = ?
-            AND hash IN (
-                SELECT value FROM json_each(?)
-            )
-            ORDER BY hash
-        """,
-            (
-                uid,
-                network.stations,
-            ),
-        )
-        stations = map(lambda r: GbfsStationStatus(r).dump(), await cur.fetchall())
-        return {
-            "stations": list(stations),
-        }
+        stations = await db.get_stations(uid)
+        stations = map(lambda s: Station2GbfsStationStatus(s), stations)
+        return GBFS3.StationStatusR(stations=list(stations))
 
     async def manifest(self, request, db):
-        cur = await db.execute("""
-            SELECT tag FROM networks
-        """)
-        rows = await cur.fetchall()
-
+        tags = await db.get_tags()
         base_url = self.endpoint
 
-        return {
-            "datasets": [
-                {
-                    "system_id": r["tag"],
-                    "versions": [
-                        {
-                            "version": version,
-                            "url": f"{base_url}/{version}/{r['tag']}/gbfs.json",
-                        }
-                        for version in VERSIONS
-                    ],
-                }
-                for r in rows
-            ]
-        }
+        datasets = [
+            {
+                "system_id": tag,
+                "versions": [
+                    {
+                        "version": version,
+                        "url": f"{base_url}/{version}/{tag}/gbfs.json",
+                    }
+                    for version in VERSIONS
+                ],
+            }
+            for tag in tags
+        ]
+
+        return GBFS3.Manifest(datasets=datasets)
 
     @property
     def routes(self):
@@ -388,14 +249,15 @@ class Gbfs:
 
                 uid = args.get("uid", None)
 
-                if uid:
-                    assert await self.network_exists(db, uid)
+                if uid and not (await db.network_exists(uid)):
+                    raise HTTPException(status_code=404)
 
-                base_response = await self.base_response(db, uid)
-
-                r = await handler(request, db, **args)
-                base_response.update({"data": r or {}})
-                return JSONResponse(base_response)
+                response = GBFS3.Response(
+                    last_updated=await db.get_last_updated(uid),
+                    ttl=self.ttl,
+                    data=await handler(request, db, **args),
+                )
+                return JSONResponse(response.dict(exclude_none=True))
 
             return _handler
 
