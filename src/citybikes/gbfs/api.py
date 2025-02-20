@@ -40,7 +40,7 @@ class Station2GbfsStationStatus(GBFS3.StationStatus):
         # First detect if we have types at all, because then we default to
         # normal bikes
 
-        extra = station.extra.dict(exclude_none=True)
+        extra = station.extra.model_dump(exclude_none=True)
 
         types = [(t, v) for t, v in Vehicles.def_map.items() if t in extra]
 
@@ -61,7 +61,7 @@ class Station2GbfsStationStatus(GBFS3.StationStatus):
         ]
 
     def __init__(self, station):
-        stat = station.stat.dict(exclude_none=True)
+        stat = station.stat.model_dump(exclude_none=True)
         d = {
             "station_id": station.uid,
             "num_vehicles_available": station.bikes,
@@ -253,7 +253,7 @@ class Gbfs:
                     ttl=self.ttl,
                     data=await handler(request, db, **args),
                 )
-                return JSONResponse(response.dict(exclude_none=True))
+                return JSONResponse(response.model_dump(exclude_none=True))
 
             return _handler
 
