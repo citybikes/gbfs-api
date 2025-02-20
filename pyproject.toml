@@ -1,0 +1,18 @@
+[project]
+name = "gbfs-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiosqlite>=0.21.0",
+    "pydantic>=2.10.6",
+    "starlette>=0.45.3",
+    "uvicorn>=0.34.0",
+]
+
+[dependency-groups]
+dev = [
+    "jsonschema>=4.23.0",
+    "pytest>=8.3.4",
+]

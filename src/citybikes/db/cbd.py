@@ -1,4 +1,4 @@
-from citybikes.types import Station, Network
+from citybikes.db.types import Station, Network
 
 
 class CBD:
