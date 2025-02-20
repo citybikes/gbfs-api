@@ -6,10 +6,9 @@ import aiosqlite
 from citybikes.db.cbd import CBD as CBD
 
 
-DB_URI = os.getenv("DB_URI", "citybikes.db")
-
-
 @asynccontextmanager
-async def get_session():
-    async with aiosqlite.connect(DB_URI) as db:
+async def get_session(* args, ** kwargs):
+    async with aiosqlite.connect(* args, ** kwargs) as db:
+        # XXX Check perf penalty on this
+        db.row_factory = lambda *a: dict(sqlite3.Row(*a))
         yield db

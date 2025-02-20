@@ -1,8 +1,6 @@
 import contextlib
 import os
-import sqlite3
 
-import aiosqlite
 from starlette.applications import Starlette
 from starlette.routing import Mount
 
@@ -10,11 +8,12 @@ from citybikes.db import CBD, get_session
 from citybikes.gbfs.api import Gbfs
 
 
+DB_URI = os.getenv("DB_URI", "citybikes.db")
+
+
 @contextlib.asynccontextmanager
 async def lifespan(app):
-    async with get_session() as db:
-        # XXX Check perf penalty on this
-        db.row_factory = lambda *a: dict(sqlite3.Row(*a))
+    async with get_session(DB_URI) as db:
         app.db = CBD(db)
         yield
 
