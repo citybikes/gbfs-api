@@ -84,10 +84,6 @@ def i18n(text):
     return [{"text": text, "language": lang} for lang in LANGUAGES]
 
 
-def GbfsFloat(num):
-    return round(float(num), 6)
-
-
 class Vehicles:
     def_map = {
         "ebikes": "electric_bike",
