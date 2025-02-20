@@ -11,8 +11,8 @@ from citybikes.db import get_session
 
 @pytest_asyncio.fixture(scope="session")
 async def db():
-    test_data = resources.files('tests')/'fixtures/test_data.sql'
-    async with get_session(':memory:') as db:
+    test_data = resources.files("tests") / "fixtures/test_data.sql"
+    async with get_session(":memory:") as db:
         await db.executescript(test_data.read_text())
         yield db
 
@@ -33,10 +33,11 @@ async def test_db_is_populated(db):
 @pytest.fixture(scope="function")
 def client(db):
     @asynccontextmanager
-    async def get_session(* args, ** kwargs):
+    async def get_session(*args, **kwargs):
         yield db
 
     with mock.patch("citybikes.gbfs.app.get_session", get_session):
         from citybikes.gbfs.app import app
+
         with TestClient(app) as client:
             yield client

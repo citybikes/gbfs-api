@@ -31,8 +31,7 @@ class Extra(BaseModel):
     address: Optional[str] = None
     post_code: Optional[str] = None
     payment: Optional[list[str]] = None
-    payment_terminal: Optional[bool] = Field(
-        alias="payment-terminal", default=None)
+    payment_terminal: Optional[bool] = Field(alias="payment-terminal", default=None)
     slots: Optional[int] = None
     rental_uris: Optional[list[dict]] = None
 
