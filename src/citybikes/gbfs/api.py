@@ -177,7 +177,7 @@ class Gbfs:
             "short_name": i18n(network.name),
             "feed_contact_email": "info@citybik.es",
             "timezone": "Etc/UTC",
-            "attribution_organization_name": "CityBikes",
+            "attribution_organization_name": i18n("CityBikes"),
             "attribution_url": "https://citybik.es",
         }
 

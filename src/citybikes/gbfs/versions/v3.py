@@ -39,7 +39,7 @@ class SystemInfo(BaseModel):
     short_name: i18nL
     feed_contact_email: str
     timezone: str
-    attribution_organization_name: str
+    attribution_organization_name: i18nL
     attribution_url: str
     operator: Optional[i18nL] = None
     license_url: Optional[str] = None
