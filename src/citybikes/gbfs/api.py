@@ -1,3 +1,5 @@
+from functools import wraps
+
 from starlette.responses import JSONResponse
 from starlette.routing import Route, Mount
 from starlette.exceptions import HTTPException
@@ -239,6 +241,7 @@ class Gbfs:
             * named params from url
             """
 
+            @wraps(handler)
             async def _handler(request):
                 args = request.path_params
                 db = request.app.db
