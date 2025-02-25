@@ -19,6 +19,7 @@ class VehicleType(BaseModel):
     form_factor: str
     propulsion_type: str
     name: list[i18n]
+    max_range_meters: Optional[float] = None
 
 
 class VehicleTypes(BaseModel):

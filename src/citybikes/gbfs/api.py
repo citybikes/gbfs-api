@@ -114,6 +114,7 @@ class Vehicles:
         "form_factor": "bicycle",
         "propulsion_type": "electric",
         "name": i18n("Electric Bike"),
+        "max_range_meters": 9000,
     }
 
     cargo_bike = {
@@ -128,6 +129,7 @@ class Vehicles:
         "form_factor": "cargo_bicycle",
         "propulsion_type": "eletric",
         "name": i18n("Electric Cargo Bike"),
+        "max_range_meters": 9000,
     }
 
 
