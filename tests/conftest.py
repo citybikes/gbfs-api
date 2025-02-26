@@ -1,3 +1,5 @@
+import json
+
 from contextlib import asynccontextmanager
 from importlib import resources
 from unittest import mock
@@ -6,7 +8,8 @@ import pytest
 import pytest_asyncio
 from starlette.testclient import TestClient
 
-from citybikes.db import get_session
+from citybikes.db import get_session, CBD
+from citybikes.gbfs.types import GBFS2, GBFS3
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -41,3 +44,30 @@ def client(db):
 
         with TestClient(app) as client:
             yield client
+
+
+@pytest.fixture(scope="session")
+def gbfs_json_schema():
+    base_path = resources.files("tests") / "fixtures/gbfs-json-schema/"
+
+    def get_json_schema(version, uri):
+        version = version.lstrip("v")
+        return json.loads((base_path / f"v{version}" / uri).read_text())
+
+    return get_json_schema
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def tags(db):
+    tags = await CBD(db).get_tags()
+    return tags
+
+
+@pytest.fixture(scope="session")
+def versions():
+    return [GBFS2.version, GBFS3.version]
+
+
+@pytest.fixture(scope="function")
+def app(client):
+    return client.app
