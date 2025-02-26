@@ -133,34 +133,34 @@ class Vehicles:
     }
 
 
-class Gbfs:
-    def __init__(self, endpoint):
-        self.endpoint = endpoint.rstrip("/")
-        self.version = "3.0"
-        self.ttl = 0
-        self.base_url = f"{self.endpoint}/{self.version}"
+from citybikes.gbfs.base_api import GBFSApi
+
+
+class Gbfs(GBFSApi):
+
+    GBFS = GBFS3
+    ttl = 0
 
     async def gbfs(self, request, db, uid):
-        base_url = f"{self.base_url}/{uid}"
 
         return GBFS3.Feeds(
             **{
                 "feeds": [
                     {
                         "name": "system_information",
-                        "url": f"{base_url}/system_information.json",
+                        "url": self.url_for(request, "/system_information.json", uid=uid),
                     },
                     {
                         "name": "vehicle_types",
-                        "url": f"{base_url}/vehicle_types.json",
+                        "url": self.url_for(request, "/vehicle_types.json", uid=uid),
                     },
                     {
                         "name": "station_information",
-                        "url": f"{base_url}/station_information.json",
+                        "url": self.url_for(request, "/station_information.json", uid=uid),
                     },
                     {
                         "name": "station_status",
-                        "url": f"{base_url}/station_status.json",
+                        "url": self.url_for(request, "/station_status.json", uid=uid),
                     },
                 ]
             }
@@ -216,7 +216,6 @@ class Gbfs:
 
     async def manifest(self, request, db):
         tags = await db.get_tags()
-        base_url = self.endpoint
 
         datasets = [
             {
@@ -224,7 +223,7 @@ class Gbfs:
                 "versions": [
                     {
                         "version": version,
-                        "url": f"{base_url}/{version}/{tag}/gbfs.json",
+                        "url": self.url_for(request, "/gbfs.json", uid=tag),
                     }
                     for version in VERSIONS
                 ],
@@ -236,42 +235,16 @@ class Gbfs:
 
     @property
     def routes(self):
-        def d(handler):
-            """decorates requests with:
-            * check if network exists
-            * a db parameter
-            * named params from url
-            """
-
-            @wraps(handler)
-            async def _handler(request):
-                args = request.path_params
-                db = request.app.db
-
-                uid = args.get("uid", None)
-
-                if uid and not (await db.network_exists(uid)):
-                    raise HTTPException(status_code=404)
-
-                response = GBFS3.Response(
-                    last_updated=await db.get_last_updated(uid),
-                    ttl=self.ttl,
-                    data=await handler(request, db, **args),
-                )
-                return JSONResponse(response.model_dump(exclude_none=True))
-
-            return _handler
-
         return [
             Mount(
                 "/{uid}",
                 routes=[
-                    Route("/gbfs.json", d(self.gbfs)),
-                    Route("/system_information.json", d(self.system_information)),
-                    Route("/vehicle_types.json", d(self.vehicle_types)),
-                    Route("/station_information.json", d(self.station_information)),
-                    Route("/station_status.json", d(self.station_status)),
+                    self.route('/gbfs.json', self.gbfs),
+                    self.route("/system_information.json", self.system_information),
+                    self.route("/vehicle_types.json", self.vehicle_types),
+                    self.route("/station_information.json", self.station_information),
+                    self.route("/station_status.json", self.station_status),
                 ],
             ),
-            Route("/manifest.json", d(self.manifest)),
+            self.route("/manifest.json", self.manifest),
         ]

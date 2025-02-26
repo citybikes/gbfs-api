@@ -19,7 +19,7 @@ async def lifespan(app):
 
 
 # XXX: set endpoint based on ENV var and listen PORT
-gbfs_v3 = Gbfs(endpoint="http://localhost:8000/")
+gbfs_v3 = Gbfs()
 
 # XXX Handle multiple versions
 routes = [
