@@ -59,8 +59,8 @@ class CBD:
         if uid:
             cur = await self.db.execute(
                 """
-                SELECT MAX(stat->>'timestamp') as timestamp FROM stations
-                WHERE network_tag = ?
+                SELECT updated as timestamp FROM networks
+                WHERE tag = ?
             """,
                 (uid,),
             )
@@ -98,6 +98,10 @@ class CBD:
         )
 
         vehicle_types_q = await cur.fetchone()
+
+        if not vehicle_types_q:
+            return []
+
         vehicle_types = filter(lambda kv: kv[1] > 0, vehicle_types_q.items())
 
         return [k for k, _ in vehicle_types]
