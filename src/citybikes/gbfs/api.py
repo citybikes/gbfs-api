@@ -158,7 +158,9 @@ class Gbfs(GBFSApi):
                 "versions": [
                     {
                         "version": version,
-                        "url": self.url_for(request, "/gbfs.json", uid=tag),
+                        "url": self.url_for(
+                            request, "/gbfs.json", uid=tag, version=version
+                        ),
                     }
                     for version in VERSIONS
                 ],

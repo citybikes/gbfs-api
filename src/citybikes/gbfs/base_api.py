@@ -13,7 +13,8 @@ class GBFSApi:
     ttl = 0
 
     def url_for(self, request, path, *args, **kwargs):
-        return str(request.url_for(f"{self.GBFS.version}:{path}", *args, **kwargs))
+        version = kwargs.pop("version", self.GBFS.version)
+        return str(request.url_for(f"{version}:{path}", *args, **kwargs))
 
     def route_decorator(self, handler):
         @wraps(handler)
