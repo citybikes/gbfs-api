@@ -35,6 +35,14 @@ class Extra(BaseModel):
     slots: Optional[int] = None
     rental_uris: Optional[list[dict]] = None
 
+    class Meta:
+        vehicle_attrs = ['ebikes', 'normal_bikes', 'cargo', 'ecargo', 'kid_bikes']
+
+    def vehicle_counts(self):
+        counts = [(k, getattr(self, k)) for k in Extra.Meta.vehicle_attrs]
+        counts = filter(lambda kv: kv[1] is not None, counts)
+        return list(counts)
+
 
 class Stat(BaseModel):
     bikes: Optional[int] = None

@@ -98,7 +98,9 @@ class CBD:
         )
 
         vehicle_types_q = await cur.fetchone()
-        return vehicle_types_q
+        vehicle_types = filter(lambda kv: kv[1] > 0, vehicle_types_q.items())
+
+        return [k for k, _ in vehicle_types]
 
     async def get_tags(self):
         cur = await self.db.execute("""

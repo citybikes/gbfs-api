@@ -1,6 +1,7 @@
+from citybikes.gbfs.constants import Vehicles as BVehicles
 from typing import Annotated, Optional, Union
 
-from pydantic import AfterValidator, BaseModel
+from pydantic import AfterValidator, BaseModel, BeforeValidator
 
 # Set here the current version these types support. Minor can be increased
 version = "3.0"
@@ -11,15 +12,29 @@ class i18n(BaseModel):
     text: str
 
 
-type i18nL = list[i18n]
+def toi18n(text):
+    if isinstance(text, str):
+        return [i18n(language="en", text=text)]
+    return text
+
+
+type i18nL = Annotated[
+    list[i18n],
+    BeforeValidator(toi18n),
+]
 
 
 class VehicleType(BaseModel):
     vehicle_type_id: str
     form_factor: str
     propulsion_type: str
-    name: list[i18n]
+    name: i18nL
     max_range_meters: Optional[float] = None
+
+
+class VehicleTypeCount(BaseModel):
+    vehicle_type_id: str
+    count: int
 
 
 class VehicleTypes(BaseModel):
@@ -61,7 +76,7 @@ class StationInfo(BaseModel):
 class StationStatus(BaseModel):
     station_id: str
     num_vehicles_available: int
-    vehicle_types_available: list[dict]
+    vehicle_types_available: list[VehicleTypeCount]
     num_docks_available: int
     is_installed: bool
     is_renting: bool
@@ -112,3 +127,49 @@ class Response(BaseModel):
         StationStatusR,
         Manifest,
     ]
+
+
+class Vehicles:
+    normal_bike = VehicleType(**BVehicles.normal_bike)
+    normal_kid_bike = VehicleType(**BVehicles.normal_kid_bike)
+    electric_bike = VehicleType(**BVehicles.electric_bike)
+    cargo_bike = VehicleType(**BVehicles.cargo_bike)
+    electric_cargo_bike = VehicleType(**BVehicles.electric_cargo_bike)
+
+    default = normal_bike
+
+    # aliases that map to Citybikes fields
+    normal_bikes = normal_bike
+    ebikes = electric_bike
+    cargo = cargo_bike
+    ecargo = electric_cargo_bike
+    kid_bikes = normal_kid_bike
+
+
+
+class VehicleCounts:
+    # XXX I hate this
+
+    class Normal(VehicleTypeCount):
+        vehicle_type_id: str = Vehicles.normal_bike.vehicle_type_id
+
+    class NormalKid(VehicleTypeCount):
+        vehicle_type_id: str = Vehicles.normal_kid_bike.vehicle_type_id
+
+    class ElectricBike(VehicleTypeCount):
+        vehicle_type_id: str = Vehicles.electric_bike.vehicle_type_id
+
+    class CargoBike(VehicleTypeCount):
+        vehicle_type_id: str = Vehicles.cargo_bike.vehicle_type_id
+
+    class ElectricCargoBike(VehicleTypeCount):
+        vehicle_type_id: str = Vehicles.electric_cargo_bike.vehicle_type_id
+
+    Default = Normal
+
+    # aliases that map to Citybikes fields
+    ebikes = ElectricBike
+    normal_bikes = Normal
+    cargo = CargoBike
+    ecargo = ElectricCargoBike
+    kid_bikes = NormalKid

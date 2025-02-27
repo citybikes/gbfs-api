@@ -6,6 +6,7 @@ from starlette.exceptions import HTTPException
 
 
 from citybikes.gbfs.types import GBFS3
+from citybikes.gbfs.base_api import GBFSApi
 
 
 LANGUAGES = ["en"]
@@ -17,7 +18,7 @@ class Station2GbfsStationInfo(GBFS3.StationInfo):
     def __init__(self, station):
         d = {
             "station_id": station.uid,
-            "name": i18n(station.name),
+            "name": station.name,
             "lat": station.latitude,
             "lon": station.longitude,
             "address": station.extra.address,
@@ -39,28 +40,13 @@ class Station2GbfsStationInfo(GBFS3.StationInfo):
 class Station2GbfsStationStatus(GBFS3.StationStatus):
     @staticmethod
     def vehicle_types(station):
-        # First detect if we have types at all, because then we default to
-        # normal bikes
+        counts = station.extra.vehicle_counts()
 
-        extra = station.extra.model_dump(exclude_none=True)
+        if not counts:
+            return [GBFS3.VehicleCounts.Default(count=station.stat.bikes)]
 
-        types = [(t, v) for t, v in Vehicles.def_map.items() if t in extra]
+        return [getattr(GBFS3.VehicleCounts, k)(count=v) for k, v in counts]
 
-        if not types:
-            return [
-                {
-                    "vehicle_type_id": Vehicles.normal_bike["vehicle_type_id"],
-                    "count": station.stat.bikes,
-                }
-            ]
-
-        return [
-            {
-                "vehicle_type_id": getattr(Vehicles, v)["vehicle_type_id"],
-                "count": getattr(station.extra, t),
-            }
-            for t, v in types
-        ]
 
     def __init__(self, station):
         stat = station.stat.model_dump(exclude_none=True)
@@ -77,63 +63,6 @@ class Station2GbfsStationStatus(GBFS3.StationStatus):
             "last_reported": station.timestamp,
         }
         super().__init__(**d)
-
-
-def i18n(text):
-    # XXX We do not support localized texts
-    if not text:
-        return []
-    return [{"text": text, "language": lang} for lang in LANGUAGES]
-
-
-class Vehicles:
-    def_map = {
-        "ebikes": "electric_bike",
-        "normal_bikes": "normal_bike",
-        "cargo": "cargo_bike",
-        "ecargo": "electric_cargo_bike",
-        "kid_bikes": "normal_kid_bike",
-    }
-
-    normal_bike = {
-        "vehicle_type_id": "cb:vehicle:bike",
-        "form_factor": "bicycle",
-        "propulsion_type": "human",
-        "name": i18n("Humble Bike"),
-    }
-
-    normal_kid_bike = {
-        "vehicle_type_id": "cb:vehicle:kid-bike",
-        "form_factor": "bicycle",
-        "propulsion_type": "human",
-        "name": i18n("Humble Kid Bike"),
-    }
-
-    electric_bike = {
-        "vehicle_type_id": "cb:vehicle:ebike",
-        "form_factor": "bicycle",
-        "propulsion_type": "electric",
-        "name": i18n("Electric Bike"),
-        "max_range_meters": 9000,
-    }
-
-    cargo_bike = {
-        "vehicle_type_id": "cb:vehicle:cargo",
-        "form_factor": "cargo_bicycle",
-        "propulsion_type": "human",
-        "name": i18n("Humble Cargo Bike"),
-    }
-
-    electric_cargo_bike = {
-        "vehicle_type_id": "cb:vehicle:ecargo",
-        "form_factor": "cargo_bicycle",
-        "propulsion_type": "eletric",
-        "name": i18n("Electric Cargo Bike"),
-        "max_range_meters": 9000,
-    }
-
-
-from citybikes.gbfs.base_api import GBFSApi
 
 
 class Gbfs(GBFSApi):
@@ -172,17 +101,17 @@ class Gbfs(GBFSApi):
         data = {
             "system_id": uid,
             "languages": LANGUAGES,
-            "name": i18n(network.name),
+            "name": network.name,
             "opening_hours": "off",
-            "short_name": i18n(network.name),
+            "short_name": network.name,
             "feed_contact_email": "info@citybik.es",
             "timezone": "Etc/UTC",
-            "attribution_organization_name": i18n("CityBikes"),
+            "attribution_organization_name": "CityBikes",
             "attribution_url": "https://citybik.es",
         }
 
         if network.meta.company:
-            data["operator"] = i18n(" | ".join(network.meta.company))
+            data["operator"] = " | ".join(network.meta.company)
 
         if network.meta.license and network.meta.license.url:
             data["license_url"] = network.meta.license.url
@@ -190,15 +119,13 @@ class Gbfs(GBFSApi):
         return GBFS3.SystemInfo(**data)
 
     async def vehicle_types(self, request, db, uid):
-        vehicle_types_q = await db.vehicle_types(uid)
-
-        types = [(t, v) for t, v in Vehicles.def_map.items() if vehicle_types_q[t]]
+        types = await db.vehicle_types(uid)
 
         # default to normal bikes if no extra info specified
         if not types:
-            vehicle_types = [Vehicles.normal_bike]
+            vehicle_types = [GBFS3.Vehicles.default]
         else:
-            vehicle_types = [getattr(Vehicles, v) for _, v in types]
+            vehicle_types = [getattr(GBFS3.Vehicles, t) for t in types]
 
         data = {"vehicle_types": vehicle_types}
 
