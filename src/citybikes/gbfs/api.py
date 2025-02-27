@@ -113,6 +113,7 @@ class Gbfs(GBFSApi):
             "opening_hours": "off",
             "short_name": network.name,
             "feed_contact_email": "info@citybik.es",
+            "manifest_url": self.url_for(request, "/manifest.json"),
             "timezone": "Etc/UTC",
             "attribution_organization_name": "CityBikes",
             "attribution_url": "https://citybik.es",

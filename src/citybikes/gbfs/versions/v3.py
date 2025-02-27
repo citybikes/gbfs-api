@@ -56,6 +56,8 @@ class SystemInfo(BaseModel):
     opening_hours: str
     short_name: i18nL
     feed_contact_email: str
+    # manifest_url is optional by spec, but required for us
+    manifest_url: str
     timezone: str
     attribution_organization_name: i18nL
     attribution_url: str
