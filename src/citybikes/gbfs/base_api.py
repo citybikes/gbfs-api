@@ -6,8 +6,11 @@ from starlette.exceptions import HTTPException
 
 
 class GBFSApi:
-    ttl = None
     GBFS = None
+
+    # XXX Anything clever to do about TTL? 0 means always reload
+    # prob. not worth, since most clients won't use it at all
+    ttl = 0
 
     def url_for(self, request, path, *args, **kwargs):
         return str(request.url_for(f"{self.GBFS.version}:{path}", *args, **kwargs))

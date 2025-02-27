@@ -63,7 +63,6 @@ class Station2GbfsStationStatus(GBFS3.StationStatus):
 
 class Gbfs(GBFSApi):
     GBFS = GBFS3
-    ttl = 0
 
     @property
     def routes(self):
