@@ -1,3 +1,5 @@
+import re
+
 from jsonschema import validate
 
 
@@ -7,18 +9,21 @@ def test_not_found(client):
 
 class TestData:
     def test_endpoint(self, client, tags, url):
-        if "uid" in url:
-            for uid in tags:
-                assert client.get(url.format(uid=uid)).status_code == 200
-        else:
-            assert client.get(url).status_code == 200
+        assert client.get(url).status_code == 200
 
     def test_schema(self, client, gbfs_json_schema, url):
         response = client.get(url)
         data = response.json()
 
         version = data["version"]
-        uri = url.rsplit("/")[-1]
+        uri = url.split("/")[-1]
         schema = gbfs_json_schema(version, uri)
 
         assert validate(data, schema) is None
+
+    def test_version_is_major(self, client, url):
+        response = client.get(url)
+        data = response.json()
+        major_version = re.sub(r"\..*", "", data["version"])
+        path_version = url.split("/")[1]
+        assert major_version == path_version

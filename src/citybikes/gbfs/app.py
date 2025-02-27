@@ -18,12 +18,11 @@ async def lifespan(app):
         yield
 
 
-# XXX: set endpoint based on ENV var and listen PORT
 gbfs_v3 = Gbfs()
 
 # XXX Handle multiple versions
 routes = [
-    Mount("/3.0", routes=gbfs_v3.routes),
+    Mount("/3", routes=gbfs_v3.routes),
 ]
 
 app = Starlette(
