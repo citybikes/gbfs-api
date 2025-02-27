@@ -36,7 +36,7 @@ class Extra(BaseModel):
     rental_uris: Optional[list[dict]] = None
 
     class Meta:
-        vehicle_attrs = ['ebikes', 'normal_bikes', 'cargo', 'ecargo', 'kid_bikes']
+        vehicle_attrs = ["ebikes", "normal_bikes", "cargo", "ecargo", "kid_bikes"]
 
     def vehicle_counts(self):
         counts = [(k, getattr(self, k)) for k in Extra.Meta.vehicle_attrs]

@@ -146,7 +146,6 @@ class Vehicles:
     kid_bikes = normal_kid_bike
 
 
-
 class VehicleCounts:
     # XXX I hate this
 

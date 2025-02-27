@@ -1,9 +1,6 @@
-from functools import wraps
+from functools import partial
 
-from starlette.responses import JSONResponse
-from starlette.routing import Route, Mount
-from starlette.exceptions import HTTPException
-
+from starlette.routing import Mount
 
 from citybikes.gbfs.types import GBFS3
 from citybikes.gbfs.base_api import GBFSApi
@@ -47,7 +44,6 @@ class Station2GbfsStationStatus(GBFS3.StationStatus):
 
         return [getattr(GBFS3.VehicleCounts, k)(count=v) for k, v in counts]
 
-
     def __init__(self, station):
         stat = station.stat.model_dump(exclude_none=True)
         d = {
@@ -66,34 +62,47 @@ class Station2GbfsStationStatus(GBFS3.StationStatus):
 
 
 class Gbfs(GBFSApi):
-
     GBFS = GBFS3
     ttl = 0
 
-    async def gbfs(self, request, db, uid):
+    @property
+    def routes(self):
+        network_routes = [
+            self.route("/gbfs.json", self.gbfs),
+            self.route("/system_information.json", self.system_information),
+            self.route("/vehicle_types.json", self.vehicle_types),
+            self.route("/station_information.json", self.station_information),
+            self.route("/station_status.json", self.station_status),
+        ]
 
-        return GBFS3.Feeds(
-            **{
-                "feeds": [
-                    {
-                        "name": "system_information",
-                        "url": self.url_for(request, "/system_information.json", uid=uid),
-                    },
-                    {
-                        "name": "vehicle_types",
-                        "url": self.url_for(request, "/vehicle_types.json", uid=uid),
-                    },
-                    {
-                        "name": "station_information",
-                        "url": self.url_for(request, "/station_information.json", uid=uid),
-                    },
-                    {
-                        "name": "station_status",
-                        "url": self.url_for(request, "/station_status.json", uid=uid),
-                    },
-                ]
-            }
-        )
+        return [
+            Mount("/{uid}", routes=network_routes),
+            self.route("/manifest.json", self.manifest),
+        ]
+
+    async def gbfs(self, request, db, uid):
+        url_for = partial(self.url_for, request, uid=uid)
+
+        feeds = [
+            {
+                "name": "system_information",
+                "url": url_for("/system_information.json"),
+            },
+            {
+                "name": "vehicle_types",
+                "url": url_for("/vehicle_types.json"),
+            },
+            {
+                "name": "station_information",
+                "url": url_for("/station_information.json"),
+            },
+            {
+                "name": "station_status",
+                "url": url_for("/station_status.json"),
+            },
+        ]
+
+        return GBFS3.Feeds(feeds=feeds)
 
     async def system_information(self, request, db, uid):
         network = await db.get_network(uid)
@@ -127,9 +136,7 @@ class Gbfs(GBFSApi):
         else:
             vehicle_types = [getattr(GBFS3.Vehicles, t) for t in types]
 
-        data = {"vehicle_types": vehicle_types}
-
-        return GBFS3.VehicleTypes(**data)
+        return GBFS3.VehicleTypes(vehicle_types=vehicle_types)
 
     async def station_information(self, request, db, uid):
         stations = await db.get_stations(uid)
@@ -159,19 +166,3 @@ class Gbfs(GBFSApi):
         ]
 
         return GBFS3.Manifest(datasets=datasets)
-
-    @property
-    def routes(self):
-        return [
-            Mount(
-                "/{uid}",
-                routes=[
-                    self.route('/gbfs.json', self.gbfs),
-                    self.route("/system_information.json", self.system_information),
-                    self.route("/vehicle_types.json", self.vehicle_types),
-                    self.route("/station_information.json", self.station_information),
-                    self.route("/station_status.json", self.station_status),
-                ],
-            ),
-            self.route("/manifest.json", self.manifest),
-        ]
