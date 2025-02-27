@@ -1,15 +1,16 @@
+import asyncio
 import json
-
 from contextlib import asynccontextmanager
 from importlib import resources
 from unittest import mock
 
 import pytest
 import pytest_asyncio
+from starlette.schemas import SchemaGenerator
 from starlette.testclient import TestClient
 
-from citybikes.db import get_session, CBD
-from citybikes.gbfs.types import GBFS2, GBFS3
+from citybikes.db import CBD, get_session
+from citybikes.gbfs.app import app
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -57,17 +58,39 @@ def gbfs_json_schema():
     return get_json_schema
 
 
-@pytest_asyncio.fixture(scope="function", autouse=True)
+@pytest_asyncio.fixture(scope="function")
 async def tags(db):
     tags = await CBD(db).get_tags()
     return tags
 
 
-@pytest.fixture(scope="session")
-def versions():
-    return [GBFS2.version, GBFS3.version]
-
-
-@pytest.fixture(scope="function")
-def app(client):
+@pytest.fixture(scope="function", name="app")
+def client_app(client):
     return client.app
+
+
+async def get_urls(app):
+    # XXX ideally we use the db and tags fixture here
+    test_data = resources.files("tests") / "fixtures/test_data.sql"
+    async with get_session(":memory:") as db:
+        await db.executescript(test_data.read_text())
+        tags = await CBD(db).get_tags()
+
+    schema = SchemaGenerator({})
+    paths = [r.path for r in schema.get_endpoints(app.routes)]
+
+    urls = []
+    for url in paths:
+        if "{uid}" in url:
+            for tag in tags:
+                urls.append(url.format(uid=tag))
+        else:
+            urls.append(url)
+
+    return sorted(urls)
+
+
+def pytest_generate_tests(metafunc):
+    if "url" in metafunc.fixturenames:
+        urls = asyncio.run(get_urls(app))
+        metafunc.parametrize("url", urls)
