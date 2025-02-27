@@ -1,3 +1,4 @@
+import os
 import asyncio
 import json
 from contextlib import asynccontextmanager
@@ -13,11 +14,15 @@ from citybikes.db import CBD, get_session
 from citybikes.gbfs.app import app
 
 
+DB_URI = os.getenv("TEST_DB_URI", ":memory:")
+
+
 @pytest_asyncio.fixture(scope="session")
 async def db():
     test_data = resources.files("tests") / "fixtures/test_data.sql"
-    async with get_session(":memory:") as db:
-        await db.executescript(test_data.read_text())
+    async with get_session(DB_URI) as db:
+        if DB_URI == ":memory:":
+            await db.executescript(test_data.read_text())
         yield db
 
 
@@ -72,8 +77,9 @@ def client_app(client):
 async def get_urls(app):
     # XXX ideally we use the db and tags fixture here
     test_data = resources.files("tests") / "fixtures/test_data.sql"
-    async with get_session(":memory:") as db:
-        await db.executescript(test_data.read_text())
+    async with get_session(DB_URI) as db:
+        if DB_URI == ":memory:":
+            await db.executescript(test_data.read_text())
         tags = await CBD(db).get_tags()
 
     schema = SchemaGenerator({})
