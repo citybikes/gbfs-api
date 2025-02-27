@@ -18,7 +18,7 @@ type p_int = Annotated[int, BeforeValidator(lambda n: max(n, 0))]
 
 type Timestamp = Annotated[str,
     BeforeValidator(lambda t: datetime.fromisoformat(t).isoformat()),
-]
+]  # fmt: skip
 
 
 class i18n(BaseModel):
