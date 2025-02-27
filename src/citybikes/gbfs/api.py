@@ -1,170 +1,42 @@
-from functools import partial
+from functools import wraps
 
-from starlette.routing import Mount
-
-from citybikes.gbfs.types import GBFS3
-from citybikes.gbfs.base_api import GBFSApi
-
-
-LANGUAGES = ["en"]
+from starlette.routing import Route
+from starlette.responses import JSONResponse
+from starlette.exceptions import HTTPException
 
 
-# XXX These go somewhere
-class Station2GbfsStationInfo(GBFS3.StationInfo):
-    def __init__(self, station):
-        d = {
-            "station_id": station.uid,
-            "name": station.name,
-            "lat": station.latitude,
-            "lon": station.longitude,
-            "address": station.extra.address,
-            "post_code": station.extra.post_code,
-            "rental_methods": station.extra.payment,
-            # XXX Virtual
-            # "is_virtual_station": ...
-            "capacity": station.extra.slots,
-            "rental_uris": station.extra.rental_uris,
-        }
+class Gbfs:
+    GBFS = None
 
-        if station.extra.payment_terminal is not None:
-            m = set(d["rental_methods"] or [] + ["key", "creditcard"])
-            d["rental_methods"] = list(m)
+    # XXX Anything clever to do about TTL? 0 means always reload
+    # prob. not worth, since most clients won't use it at all
+    ttl = 0
 
-        super().__init__(**d)
+    def url_for(self, request, path, *args, **kwargs):
+        version = kwargs.pop("version", self.GBFS.version)
+        return str(request.url_for(f"{version}:{path}", *args, **kwargs))
 
+    def route_decorator(self, handler):
+        @wraps(handler)
+        async def _handler(request):
+            args = request.path_params
+            db = request.app.db
 
-class Station2GbfsStationStatus(GBFS3.StationStatus):
-    @staticmethod
-    def vehicle_types(station):
-        counts = station.extra.vehicle_counts()
+            uid = args.get("uid", None)
 
-        if not counts:
-            return [GBFS3.VehicleCounts.Default(count=station.stat.bikes)]
+            if uid and not (await db.network_exists(uid)):
+                raise HTTPException(status_code=404)
 
-        return [getattr(GBFS3.VehicleCounts, k)(count=v) for k, v in counts]
+            response = self.GBFS.Response(
+                last_updated=await db.get_last_updated(uid),
+                ttl=self.ttl,
+                data=await handler(request, db, **args),
+            )
+            return JSONResponse(response.model_dump(exclude_none=True))
 
-    def __init__(self, station):
-        stat = station.stat.model_dump(exclude_none=True)
-        d = {
-            "station_id": station.uid,
-            "num_vehicles_available": station.bikes,
-            "vehicle_types_available": self.vehicle_types(station),
-            "num_docks_available": station.free,
-            # pybikes ignores non installed stations
-            "is_installed": True,
-            # XXX status ? and if not available, default to true
-            "is_renting": stat.get("online", True),
-            "is_returning": stat.get("online", True),
-            "last_reported": station.timestamp,
-        }
-        super().__init__(**d)
+        return _handler
 
-
-class Gbfs(GBFSApi):
-    GBFS = GBFS3
-
-    @property
-    def routes(self):
-        network_routes = [
-            self.route("/gbfs.json", self.gbfs),
-            self.route("/system_information.json", self.system_information),
-            self.route("/vehicle_types.json", self.vehicle_types),
-            self.route("/station_information.json", self.station_information),
-            self.route("/station_status.json", self.station_status),
-        ]
-
-        return [
-            Mount("/{uid}", routes=network_routes),
-            self.route("/manifest.json", self.manifest),
-        ]
-
-    async def gbfs(self, request, db, uid):
-        url_for = partial(self.url_for, request, uid=uid)
-
-        feeds = [
-            {
-                "name": "system_information",
-                "url": url_for("/system_information.json"),
-            },
-            {
-                "name": "vehicle_types",
-                "url": url_for("/vehicle_types.json"),
-            },
-            {
-                "name": "station_information",
-                "url": url_for("/station_information.json"),
-            },
-            {
-                "name": "station_status",
-                "url": url_for("/station_status.json"),
-            },
-        ]
-
-        return GBFS3.Feeds(feeds=feeds)
-
-    async def system_information(self, request, db, uid):
-        network = await db.get_network(uid)
-
-        data = {
-            "system_id": uid,
-            "languages": LANGUAGES,
-            "name": network.name,
-            "opening_hours": "off",
-            "short_name": network.name,
-            "feed_contact_email": "info@citybik.es",
-            "manifest_url": self.url_for(request, "/manifest.json"),
-            # XXX maybe we start collecting timezones on pybikes meta
-            "timezone": "Etc/UTC",
-            "attribution_organization_name": "CityBikes",
-            "attribution_url": "https://citybik.es",
-        }
-
-        if network.meta.company:
-            data["operator"] = " | ".join(network.meta.company)
-
-        if network.meta.license and network.meta.license.url:
-            data["license_url"] = network.meta.license.url
-
-        return GBFS3.SystemInfo(**data)
-
-    async def vehicle_types(self, request, db, uid):
-        types = await db.vehicle_types(uid)
-
-        # default to normal bikes if no extra info specified
-        if not types:
-            vehicle_types = [GBFS3.Vehicles.default]
-        else:
-            vehicle_types = [getattr(GBFS3.Vehicles, t) for t in types]
-
-        return GBFS3.VehicleTypes(vehicle_types=vehicle_types)
-
-    async def station_information(self, request, db, uid):
-        stations = await db.get_stations(uid)
-        stations = map(lambda s: Station2GbfsStationInfo(s), stations)
-        return GBFS3.StationInfoR(stations=list(stations))
-
-    async def station_status(self, request, db, uid):
-        stations = await db.get_stations(uid)
-        stations = map(lambda s: Station2GbfsStationStatus(s), stations)
-        return GBFS3.StationStatusR(stations=list(stations))
-
-    async def manifest(self, request, db):
-        tags = await db.get_tags()
-
-        datasets = [
-            {
-                "system_id": tag,
-                "versions": [
-                    {
-                        "version": version,
-                        "url": self.url_for(
-                            request, "/gbfs.json", uid=tag, version=version
-                        ),
-                    }
-                    for version in request.app.VERSIONS
-                ],
-            }
-            for tag in tags
-        ]
-
-        return GBFS3.Manifest(datasets=datasets)
+    def route(self, path, handler, *args, **kwargs):
+        name = f"{self.GBFS.version}:{path}"
+        kwargs.setdefault("name", name)
+        return Route(path, self.route_decorator(handler), *args, **kwargs)

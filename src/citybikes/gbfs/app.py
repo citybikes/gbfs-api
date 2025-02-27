@@ -5,13 +5,13 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 
 from citybikes.db import CBD, get_session
-from citybikes.gbfs.api import Gbfs
+from citybikes.gbfs.versions.v3.api import Gbfs as Gbfs3
 
 
 DB_URI = os.getenv("DB_URI", "citybikes.db")
 
 
-VERSIONS = [Gbfs.GBFS.version]
+VERSIONS = [Gbfs3.GBFS.version]
 
 
 @contextlib.asynccontextmanager
@@ -23,7 +23,7 @@ async def lifespan(app):
         yield
 
 
-gbfs_v3 = Gbfs()
+gbfs_v3 = Gbfs3()
 
 # XXX Handle multiple versions
 routes = [
