@@ -33,7 +33,7 @@ class Extra(BaseModel):
     payment: Optional[list[str]] = None
     payment_terminal: Optional[bool] = Field(alias="payment-terminal", default=None)
     slots: Optional[int] = None
-    rental_uris: Optional[list[dict]] = None
+    rental_uris: Optional[dict] = None
 
     class Meta:
         vehicle_attrs = ["ebikes", "normal_bikes", "cargo", "ecargo", "kid_bikes"]

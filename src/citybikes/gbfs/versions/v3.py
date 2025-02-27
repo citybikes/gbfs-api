@@ -71,7 +71,7 @@ class StationInfo(BaseModel):
     address: Optional[str] = None
     post_code: Optional[str] = None
     rental_methods: Optional[list[str]] = None
-    rental_uris: Optional[list[dict]] = None
+    rental_uris: Optional[dict] = None
     capacity: Optional[p_int] = None
 
 
