@@ -11,10 +11,15 @@ from citybikes.gbfs.api import Gbfs
 DB_URI = os.getenv("DB_URI", "citybikes.db")
 
 
+VERSIONS = [Gbfs.GBFS.version]
+
+
 @contextlib.asynccontextmanager
 async def lifespan(app):
     async with get_session(DB_URI) as db:
         app.db = CBD(db)
+        # XXX best way to avoid circular imports
+        app.VERSIONS = VERSIONS
         yield
 
 

@@ -7,7 +7,6 @@ from citybikes.gbfs.base_api import GBFSApi
 
 
 LANGUAGES = ["en"]
-VERSIONS = ["3.0"]
 
 
 # XXX These go somewhere
@@ -162,7 +161,7 @@ class Gbfs(GBFSApi):
                             request, "/gbfs.json", uid=tag, version=version
                         ),
                     }
-                    for version in VERSIONS
+                    for version in request.app.VERSIONS
                 ],
             }
             for tag in tags
