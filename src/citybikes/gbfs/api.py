@@ -114,6 +114,7 @@ class Gbfs(GBFSApi):
             "short_name": network.name,
             "feed_contact_email": "info@citybik.es",
             "manifest_url": self.url_for(request, "/manifest.json"),
+            # XXX maybe we start collecting timezones on pybikes meta
             "timezone": "Etc/UTC",
             "attribution_organization_name": "CityBikes",
             "attribution_url": "https://citybik.es",

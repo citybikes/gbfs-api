@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from citybikes.gbfs.constants import Vehicles as BVehicles
 from typing import Annotated, Optional, Union
 
@@ -13,6 +15,10 @@ type Float = Annotated[
 ]
 
 type p_int = Annotated[int, BeforeValidator(lambda n: max(n, 0))]
+
+type Timestamp = Annotated[str,
+    BeforeValidator(lambda t: datetime.fromisoformat(t).isoformat()),
+]
 
 
 class i18n(BaseModel):
@@ -85,7 +91,7 @@ class StationStatus(BaseModel):
     is_installed: bool
     is_renting: bool
     is_returning: bool
-    last_reported: str
+    last_reported: Timestamp
 
 
 class StationInfoR(BaseModel):
@@ -120,7 +126,7 @@ class Feeds(BaseModel):
 
 
 class Response(BaseModel):
-    last_updated: str
+    last_updated: Timestamp
     ttl: p_int
     version: str = version
     data: Union[
