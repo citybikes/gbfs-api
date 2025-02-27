@@ -7,6 +7,14 @@ from pydantic import AfterValidator, BaseModel, BeforeValidator
 version = "3.0"
 
 
+type Float = Annotated[
+    float,
+    AfterValidator(lambda x: round(x, 6)),
+]
+
+type p_int = Annotated[int, BeforeValidator(lambda n: max(n, 0))]
+
+
 class i18n(BaseModel):
     language: str
     text: str
@@ -34,17 +42,11 @@ class VehicleType(BaseModel):
 
 class VehicleTypeCount(BaseModel):
     vehicle_type_id: str
-    count: int
+    count: p_int
 
 
 class VehicleTypes(BaseModel):
     vehicle_types: list[VehicleType]
-
-
-type Float = Annotated[
-    float,
-    AfterValidator(lambda x: round(x, 6)),
-]
 
 
 class SystemInfo(BaseModel):
@@ -69,15 +71,15 @@ class StationInfo(BaseModel):
     address: Optional[str] = None
     post_code: Optional[str] = None
     rental_methods: Optional[list[str]] = None
-    capacity: Optional[int] = None
     rental_uris: Optional[list[dict]] = None
+    capacity: Optional[p_int] = None
 
 
 class StationStatus(BaseModel):
     station_id: str
-    num_vehicles_available: int
+    num_vehicles_available: p_int
     vehicle_types_available: list[VehicleTypeCount]
-    num_docks_available: int
+    num_docks_available: Optional[p_int]
     is_installed: bool
     is_renting: bool
     is_returning: bool
@@ -117,7 +119,7 @@ class Feeds(BaseModel):
 
 class Response(BaseModel):
     last_updated: str
-    ttl: int
+    ttl: p_int
     version: str = version
     data: Union[
         Feeds,
