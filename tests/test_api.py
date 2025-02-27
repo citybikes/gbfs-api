@@ -11,7 +11,7 @@ class TestData:
     def test_endpoint(self, client, tags, url):
         assert client.get(url).status_code == 200
 
-    def test_schema(self, client, gbfs_json_schema, url):
+    def test_gbfs_json_schema(self, client, gbfs_json_schema, url):
         response = client.get(url)
         data = response.json()
 
