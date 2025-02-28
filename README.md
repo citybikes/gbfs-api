@@ -66,10 +66,8 @@ Now, `citybikes.db` contains real-time bike availability!
 For example:
 
 * `GET /3/manifest.json` - Returns the GBFS v3 manifest document.
-* `GET /3/bicing/gbfs.json` - Returns the GBFS v3 auto-discovery document for a
-* `bicing` network.
-* `GET /2/velib/station_status.json` - Returns the GBFS v2 station status
-* document for a `velib` network.
+* `GET /3/bicing/gbfs.json` - Returns the GBFS v3 auto-discovery document for a `bicing` network.
+* `GET /2/velib/station_status.json` - Returns the GBFS v2 station status document for a `velib` network.
 
 See the full specification at https://docs.citybik.es/api/gbfs and
 https://github.com/MobilityData/gbfs
