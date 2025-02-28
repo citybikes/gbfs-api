@@ -4,7 +4,7 @@ import os
 from starlette.applications import Starlette
 from starlette.routing import Mount
 
-from citybikes.db.asyncio import CBD, get_session
+from citybikes.db.asyncio import CBD, get_session, migrate
 from citybikes.gbfs.versions.v3.api import Gbfs as Gbfs3
 from citybikes.gbfs.versions.v2.api import Gbfs as Gbfs2
 
@@ -18,6 +18,7 @@ VERSIONS = [Gbfs2.GBFS.version, Gbfs3.GBFS.version]
 @contextlib.asynccontextmanager
 async def lifespan(app):
     async with get_session(DB_URI) as db:
+        assert await migrate(db)
         app.db = CBD(db)
         # XXX best way to avoid circular imports
         app.VERSIONS = VERSIONS
