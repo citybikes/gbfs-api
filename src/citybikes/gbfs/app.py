@@ -4,7 +4,7 @@ import os
 from starlette.applications import Starlette
 from starlette.routing import Mount
 
-from citybikes.db import CBD, get_session
+from citybikes.db.asyncio import CBD, get_session
 from citybikes.gbfs.versions.v3.api import Gbfs as Gbfs3
 from citybikes.gbfs.versions.v2.api import Gbfs as Gbfs2
 

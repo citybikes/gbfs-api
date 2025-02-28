@@ -10,7 +10,8 @@ import pytest_asyncio
 from starlette.schemas import SchemaGenerator
 from starlette.testclient import TestClient
 
-from citybikes.db import CBD, get_session, migrate
+from citybikes.db import CBD
+from citybikes.db.asyncio import get_session, migrate
 from citybikes.gbfs.app import app
 
 
