@@ -32,6 +32,10 @@ class Gbfs(BaseGbfs):
 
         feeds = [
             {
+                "name": "gbfs",
+                "url": url_for("/gbfs.json"),
+            },
+            {
                 "name": "system_information",
                 "url": url_for("/system_information.json"),
             },
