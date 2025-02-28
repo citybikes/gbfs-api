@@ -40,3 +40,7 @@ class Gbfs:
         name = f"{self.GBFS.version}:{path}"
         kwargs.setdefault("name", name)
         return Route(path, self.route_decorator(handler), *args, **kwargs)
+
+    @property
+    def routes(self):
+        raise NotImplementedError()
