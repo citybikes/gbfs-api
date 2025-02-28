@@ -10,7 +10,7 @@ import pytest_asyncio
 from starlette.schemas import SchemaGenerator
 from starlette.testclient import TestClient
 
-from citybikes.db import CBD, get_session
+from citybikes.db import CBD, get_session, migrate
 from citybikes.gbfs.app import app
 
 
@@ -21,6 +21,7 @@ DB_URI = os.getenv("TEST_DB_URI", ":memory:")
 async def db():
     test_data = resources.files("tests") / "fixtures/test_data.sql"
     async with get_session(DB_URI) as db:
+        assert await migrate(db)
         if DB_URI == ":memory:":
             await db.executescript(test_data.read_text())
         yield db
@@ -78,6 +79,7 @@ async def get_urls(app):
     # XXX ideally we use the db and tags fixture here
     test_data = resources.files("tests") / "fixtures/test_data.sql"
     async with get_session(DB_URI) as db:
+        assert await migrate(db)
         if DB_URI == ":memory:":
             await db.executescript(test_data.read_text())
         tags = await CBD(db).get_tags()
