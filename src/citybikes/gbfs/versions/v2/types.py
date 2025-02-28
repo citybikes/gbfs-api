@@ -16,8 +16,8 @@ type Float = Annotated[
 
 type p_int = Annotated[int, BeforeValidator(lambda n: max(n, 0))]
 
-type Timestamp = Annotated[str,
-    BeforeValidator(lambda t: datetime.fromisoformat(t).timestamp()),
+type Timestamp = Annotated[int,
+    BeforeValidator(lambda t: int(datetime.fromisoformat(t).timestamp())),
 ]  # fmt: skip
 
 
@@ -98,12 +98,18 @@ class Feeds(BaseModel):
     feeds: list[Feed]
 
 
+class Gbfs(BaseModel):
+    # XXX hardcoded LANGUAGE. This is the _safest_ option, either this or
+    # accept any arbitrary dict, which defeats the purpose of using types
+    en: Feeds
+
+
 class Response(BaseModel):
     last_updated: Timestamp
     ttl: p_int
     version: str = version
     data: Union[
-        dict,   # XXX this will make life harder
+        Gbfs,
         Versions,
         SystemInfo,
         VehicleTypes,
