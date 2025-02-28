@@ -108,7 +108,7 @@ This is useful for validating endpoints against the GBFS JSON schema.
 
 ## License
 
-`gbfs-api` is **free, open-source software** licensed under **AGPLv3**. See [LICENSE](LICENSE.txt) for details.
+`gbfs-api` is free, open-source software licensed under AGPLv3. See [LICENSE](LICENSE.txt) for details.
 
 ## Funding
 
