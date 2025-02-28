@@ -182,3 +182,53 @@ class VehicleCounts:
     cargo = CargoBike
     ecargo = ElectricCargoBike
     kid_bikes = NormalKid
+
+
+class Station2GbfsStationInfo(StationInfo):
+    def __init__(self, station):
+        d = {
+            "station_id": station.uid,
+            "name": station.name,
+            "lat": station.latitude,
+            "lon": station.longitude,
+            "address": station.extra.address,
+            "post_code": station.extra.post_code,
+            "rental_methods": station.extra.payment,
+            # XXX Virtual
+            # "is_virtual_station": ...
+            "capacity": station.extra.slots,
+            "rental_uris": station.extra.rental_uris,
+        }
+
+        if station.extra.payment_terminal is not None:
+            m = set(d["rental_methods"] or [] + ["key", "creditcard"])
+            d["rental_methods"] = list(m)
+
+        super().__init__(**d)
+
+
+class Station2GbfsStationStatus(StationStatus):
+    @staticmethod
+    def vehicle_types(station):
+        counts = station.extra.vehicle_counts()
+
+        if not counts:
+            return [VehicleCounts.Default(count=station.stat.bikes)]
+
+        return [getattr(VehicleCounts, k)(count=v) for k, v in counts]
+
+    def __init__(self, station):
+        stat = station.stat.model_dump(exclude_none=True)
+        d = {
+            "station_id": station.uid,
+            "num_vehicles_available": station.bikes,
+            "vehicle_types_available": self.vehicle_types(station),
+            "num_docks_available": station.free,
+            # pybikes ignores non installed stations
+            "is_installed": True,
+            # XXX status ? and if not available, default to true
+            "is_renting": stat.get("online", True),
+            "is_returning": stat.get("online", True),
+            "last_reported": station.timestamp,
+        }
+        super().__init__(**d)
