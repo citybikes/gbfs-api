@@ -6,13 +6,16 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "aiosqlite>=0.21.0",
-    "citybikes-hyper",
     "pydantic>=2.10.6",
     "starlette>=0.45.3",
     "uvicorn>=0.34.0",
 ]
 
 [dependency-groups]
+hyper = [
+    "citybikes-hyper",
+]
+
 dev = [
     "jsonschema>=4.23.0",
     "pytest-asyncio>=0.25.3",
