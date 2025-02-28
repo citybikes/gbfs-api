@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "aiosqlite>=0.21.0",
+    "citybikes-hyper",
     "pydantic>=2.10.6",
     "starlette>=0.45.3",
     "uvicorn>=0.34.0",
@@ -21,3 +22,6 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "session"
+
+[tool.uv.sources]
+citybikes-hyper = { git = "https://github.com/citybikes/hyper" }
