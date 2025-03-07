@@ -67,7 +67,7 @@ class CBD:
         else:
             cur = await self.db.execute(
                 """
-                SELECT MAX(stat->>'timestamp') as timestamp FROM stations
+                SELECT MAX(updated) as timestamp FROM networks
             """
             )
 
