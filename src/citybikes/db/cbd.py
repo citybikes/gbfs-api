@@ -34,9 +34,10 @@ class CBD:
             JOIN networks n ON s.hash = json_each.value
             JOIN json_each(n.stations)
             WHERE n.tag = ?
+              AND s.network_tag = ?
             ORDER BY hash
         """,
-            (uid,),
+            (uid, uid),
         )
 
         stations = map(lambda r: Station(**r), await cur.fetchall())
