@@ -83,6 +83,10 @@ https://github.com/MobilityData/gbfs
 To set up a local development environment:
 
 ```sh
+# pull json schema fixtures
+git submodule update --init --recursive
+
+# install dev dependencies with uv
 uv venv
 source .venv/bin/activate
 uv sync
