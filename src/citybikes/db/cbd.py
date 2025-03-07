@@ -109,6 +109,7 @@ class CBD:
     async def get_tags(self):
         cur = await self.db.execute("""
             SELECT tag FROM networks
+            ORDER BY tag
         """)
         rows = await cur.fetchall()
         return list(map(lambda r: r["tag"], rows))
