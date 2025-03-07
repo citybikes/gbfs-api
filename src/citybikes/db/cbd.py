@@ -92,7 +92,6 @@ class CBD:
             JOIN json_each(n.stations)
             WHERE n.tag = ?
               AND s.network_tag = ?
-            GROUP BY s.network_tag
         """,
             (uid, uid),
         )
