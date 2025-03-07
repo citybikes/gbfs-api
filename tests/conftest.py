@@ -89,7 +89,16 @@ async def get_urls(app):
     paths = [r.path for r in schema.get_endpoints(app.routes)]
 
     urls = []
+
+    # urls to exclude in testing
+    exclude = [
+        "/",
+    ]
+
     for url in paths:
+        if url in exclude:
+            continue
+
         if "{uid}" in url:
             for tag in tags:
                 urls.append(url.format(uid=tag))
