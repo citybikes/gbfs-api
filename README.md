@@ -46,7 +46,7 @@ http :8000/2/velib/gbfs.json
 For real-time data, install [hyper][2] and run a publisher and subscriber:
 
 ```sh
-pip install https://github.com/citybikes/hyper
+pip install git+https://github.com/citybikes/hyper
 hyper publisher
 ```
 
