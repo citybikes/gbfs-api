@@ -1,10 +1,12 @@
 import os
 import sys
 import json
+import sqlite3
+import signal
 import logging
 import argparse
 
-from citybikes.db import migrate, get_session
+from citybikes.db import migrate
 from citybikes.hyper.subscriber import ZMQSubscriber
 
 DB_URI = os.getenv("DB_URI", "citybikes.db")
@@ -15,6 +17,7 @@ log = logging.getLogger("subscriber")
 
 # XXX: mainly copy-pasta from citybikes/hyper
 # think about moving this to the codebase if enough parts use it
+
 
 class Sqlitesubscriber(ZMQSubscriber):
     def __init__(self, con, *args, **kwargs):
@@ -103,17 +106,26 @@ class Sqlitesubscriber(ZMQSubscriber):
 
 
 def main(args):
-    with get_session(DB_URI) as db:
-        assert migrate(db)
+    db = sqlite3.connect(DB_URI)
+    db.row_factory = lambda *a: dict(sqlite3.Row(*a))
+    assert migrate(db)
 
-        cur = db.cursor()
-        cur.executescript("""
-            PRAGMA journal_mode = WAL;
-        """)
-        db.commit()
+    cur = db.cursor()
+    cur.executescript("""
+        PRAGMA journal_mode = WAL;
+    """)
+    db.commit()
 
-        subscriber = Sqlitesubscriber(db, args.addr, args.topic)
-        subscriber.reader()
+    def shutdown(*args, **kwargs):
+        log.info("Closing DB conn")
+        db.close()
+        sys.exit(0)
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, shutdown)
+
+    subscriber = Sqlitesubscriber(db, args.addr, args.topic)
+    subscriber.reader()
 
 
 if __name__ == "__main__":

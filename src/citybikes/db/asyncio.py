@@ -9,6 +9,7 @@ log = logging.getLogger("db")
 
 # XXX: try to dedupe with db/__init__.py
 
+
 async def migrate(conn):
     migrations_path = resources.files("citybikes.db") / "migrations"
     migrations = sorted(list(migrations_path.glob("*.sql")))
