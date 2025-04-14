@@ -38,6 +38,26 @@ class VehicleTypes(BaseModel):
     vehicle_types: list[VehicleType]
 
 
+class BikeStatus(BaseModel):
+    bike_id: str
+    vehicle_type_id: str
+
+    lat: Float
+    lon: Float
+
+    is_reserved: bool
+    is_disabled: bool
+
+    last_reported: Timestamp
+
+    current_range_meters: Optional[float] = None
+    current_fuel_percent: Optional[float] = None
+
+
+class BikeStatusR(BaseModel):
+    bikes: list[BikeStatus]
+
+
 class SystemInfo(BaseModel):
     system_id: str
     language: str
@@ -115,6 +135,7 @@ class Response(BaseModel):
         VehicleTypes,
         StationInfoR,
         StationStatusR,
+        BikeStatusR,
     ]
 
 
@@ -128,12 +149,17 @@ class Vehicles:
 
     default = normal_bike
 
-    # aliases that map to Citybikes fields
+    # aliases that map to Citybikes station fields
     normal_bikes = normal_bike
     ebikes = electric_bike
     cargo = cargo_bike
     ecargo = electric_cargo_bike
     kid_bikes = normal_kid_bike
+
+    # aliases that map to Citybikes vehicle fields
+    bike = normal_bike
+    ebike = electric_bike
+    scooter = scooter
 
 
 class VehicleCounts:
@@ -210,5 +236,25 @@ class Station2GbfsStationStatus(StationStatus):
             "is_renting": stat.get("online", True),
             "is_returning": stat.get("online", True),
             "last_reported": station.timestamp,
+        }
+        super().__init__(**d)
+
+
+class Vehicle2GbfsBikeStatus(BikeStatus):
+    @staticmethod
+    def type_id(vehicle):
+        vt = getattr(Vehicles, vehicle.kind, Vehicles.default)
+        return vt.vehicle_type_id
+
+    def __init__(self, vehicle):
+        stat = vehicle.stat.model_dump(exclude_none=True)
+        d = {
+            "lat": vehicle.latitude,
+            "lon": vehicle.longitude,
+            "bike_id": vehicle.uid,
+            "vehicle_type_id": self.type_id(vehicle),
+            "is_reserved": False,
+            "is_disabled": not stat.get("online", True),
+            "last_reported": vehicle.stat.timestamp,
         }
         super().__init__(**d)
