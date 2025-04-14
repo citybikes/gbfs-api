@@ -18,6 +18,7 @@ class Gbfs(BaseGbfs):
             self.route("/gbfs.json", self.gbfs),
             self.route("/system_information.json", self.system_information),
             self.route("/vehicle_types.json", self.vehicle_types),
+            self.route("/vehicle_status.json", self.vehicle_status),
             self.route("/station_information.json", self.station_information),
             self.route("/station_status.json", self.station_status),
         ]
@@ -42,6 +43,10 @@ class Gbfs(BaseGbfs):
             {
                 "name": "vehicle_types",
                 "url": url_for("/vehicle_types.json"),
+            },
+            {
+                "name": "vehicle_status",
+                "url": url_for("/vehicle_status.json"),
             },
             {
                 "name": "station_information",
@@ -90,6 +95,11 @@ class Gbfs(BaseGbfs):
             vehicle_types = [getattr(GBFS3.Vehicles, t) for t in types]
 
         return GBFS3.VehicleTypes(vehicle_types=vehicle_types)
+
+    async def vehicle_status(self, request, db, uid):
+        vehicles = await db.get_vehicles(uid)
+        vehicles = map(lambda v: GBFS3.Vehicle2GbfsVehicleStatus(v), vehicles)
+        return GBFS3.VehicleStatusR(vehicles=list(vehicles))
 
     async def station_information(self, request, db, uid):
         stations = await db.get_stations(uid)
