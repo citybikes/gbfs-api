@@ -97,17 +97,42 @@ class CBD:
 
         cur = await self.db.execute(
             """
+            WITH bike_type_flags AS (
+                SELECT
+                    MAX(s.stat->>'extra'->>'normal_bikes' IS NOT NULL)  AS normal_bikes,
+                    MAX(s.stat->>'extra'->>'ebikes' IS NOT NULL)        AS ebikes,
+                    MAX(s.stat->>'extra'->>'cargo' IS NOT NULL)         AS cargo,
+                    MAX(s.stat->>'extra'->>'ecargo' IS NOT NULL)        AS ecargo,
+                    MAX(s.stat->>'extra'->>'kid_bikes' IS NOT NULL)     AS kid_bikes,
+                    MAX(0)                                              AS scooter
+                FROM stations s
+                JOIN networks n ON n.tag = s.network_tag
+                JOIN json_each(n.stations) AS j ON j.value = s.hash
+                WHERE s.network_tag = ?
+
+                UNION ALL
+
+                SELECT
+                    MAX(v.kind = 'bike')      AS normal_bikes,
+                    MAX(v.kind = 'ebike')     AS ebikes,
+                    MAX(0)                    AS cargo,
+                    MAX(0)                    AS ecargo,
+                    MAX(0)                    AS kid_bikes,
+                    MAX(v.kind = 'scooter')   AS scooter
+                FROM vehicles v
+                JOIN networks n ON n.tag = v.network_tag
+                JOIN json_each(n.vehicles) AS j ON j.value = v.hash
+                WHERE v.network_tag = ?
+            )
+
             SELECT
-                   max(s.stat->>'extra'->>'normal_bikes' IS NOT NULL) as normal_bikes,
-                   max(s.stat->>'extra'->>'ebikes' IS NOT NULL) as ebikes,
-                   max(s.stat->>'extra'->>'cargo' IS NOT NULL) as cargo,
-                   max(s.stat->>'extra'->>'ecargo' IS NOT NULL) as ecargo,
-                   max(s.stat->>'extra'->>'kid_bikes' IS NOT NULL) as kid_bikes
-            FROM stations s
-            JOIN networks n ON s.hash = json_each.value
-            JOIN json_each(n.stations)
-            WHERE n.tag = ?
-              AND s.network_tag = ?
+                MAX(normal_bikes) AS normal_bikes,
+                MAX(ebikes) AS ebikes,
+                MAX(cargo) AS cargo,
+                MAX(ecargo) AS ecargo,
+                MAX(kid_bikes) AS kid_bikes,
+                MAX(scooter) AS scooter
+            FROM bike_type_flags
         """,
             (uid, uid),
         )
@@ -117,7 +142,7 @@ class CBD:
         if not vehicle_types_q:
             return []
 
-        vehicle_types = filter(lambda kv: kv[1] > 0, vehicle_types_q.items())
+        vehicle_types = filter(lambda kv: bool(kv[1]), vehicle_types_q.items())
 
         return [k for k, _ in vehicle_types]
 
