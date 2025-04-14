@@ -124,6 +124,7 @@ class Vehicles:
     electric_bike = VehicleType(**BVehicles.electric_bike)
     cargo_bike = VehicleType(**BVehicles.cargo_bike)
     electric_cargo_bike = VehicleType(**BVehicles.electric_cargo_bike)
+    scooter = VehicleType(**BVehicles.scooter)
 
     default = normal_bike
 
