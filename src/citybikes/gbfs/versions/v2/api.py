@@ -21,6 +21,7 @@ class Gbfs(BaseGbfs):
             self.route("/vehicle_types.json", self.vehicle_types),
             self.route("/station_information.json", self.station_information),
             self.route("/station_status.json", self.station_status),
+            self.route("/free_bike_status.json", self.free_bike_status),
         ]
 
         return [
@@ -54,6 +55,10 @@ class Gbfs(BaseGbfs):
             {
                 "name": "station_status",
                 "url": url_for("/station_status.json"),
+            },
+            {
+                "name": "free_bike_status",
+                "url": url_for("/free_bike_status.json"),
             },
         ]
 
@@ -108,3 +113,8 @@ class Gbfs(BaseGbfs):
         stations = await db.get_stations(uid)
         stations = map(lambda s: GBFS2.Station2GbfsStationStatus(s), stations)
         return GBFS2.StationStatusR(stations=list(stations))
+
+    async def free_bike_status(self, request, db, uid):
+        vehicles = await db.get_vehicles(uid)
+        vehicles = map(lambda v: GBFS2.Vehicle2GbfsBikeStatus(v), vehicles)
+        return GBFS2.BikeStatusR(bikes=list(vehicles))
