@@ -69,3 +69,22 @@ class Network(BaseModel):
     uid: str = Field(alias="tag")
     name: str
     meta: Json[Meta]
+
+
+class VehicleExtra(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    battery: Optional[float] = None
+    online: Optional[bool] = None
+
+
+class VehicleStat(BaseModel):
+    timestamp: str
+    extra: VehicleExtra
+
+
+class Vehicle(BaseModel):
+    uid: str = Field(alias="hash")
+    latitude: float
+    longitude: float
+    kind: str
+    stat: Json[VehicleStat]
