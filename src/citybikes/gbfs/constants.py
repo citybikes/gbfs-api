@@ -35,3 +35,11 @@ class Vehicles:
         "name": "Electric Cargo Bike",
         "max_range_meters": 9000,
     }
+
+    scooter = {
+        "vehicle_type_id": "cb:vehicle:scooter",
+        "form_factor": "scooter_standing",
+        "propulsion_type": "electric",
+        "name": "Electric Scooter",
+        "max_range_meters": 9000,
+    }
