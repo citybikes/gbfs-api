@@ -31,7 +31,7 @@ class Vehicles:
     electric_cargo_bike = {
         "vehicle_type_id": "cb:vehicle:ecargo",
         "form_factor": "cargo_bicycle",
-        "propulsion_type": "eletric",
+        "propulsion_type": "electric",
         "name": "Electric Cargo Bike",
         "max_range_meters": 9000,
     }
