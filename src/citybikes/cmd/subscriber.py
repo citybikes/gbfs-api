@@ -29,6 +29,7 @@ class Sqlitesubscriber(ZMQSubscriber):
         meta = network["meta"]
 
         station_ids = [s["id"] for s in network.get("stations", [])]
+        vehicle_ids = [v["id"] for v in network.get("vehicles", [])]
 
         cursor = self.con.cursor()
 
@@ -37,17 +38,18 @@ class Sqlitesubscriber(ZMQSubscriber):
 
         cursor.execute(
             """
-            INSERT INTO networks (tag, name, latitude, longitude, meta, stations)
-            VALUES (?, ?, ?, ?, json(?), json(?))
+            INSERT INTO networks (tag, name, latitude, longitude, meta, stations, vehicles)
+            VALUES (?, ?, ?, ?, json(?), json(?), json(?))
             ON CONFLICT(tag) DO UPDATE SET
                 name=excluded.name,
                 latitude=excluded.latitude,
                 longitude=excluded.longitude,
                 meta=json(excluded.meta),
-                stations=json(excluded.stations)
+                stations=json(excluded.stations),
+                vehicles=json(excluded.vehicles)
             WHERE
                 -- ignore info if no stations (prob an error)
-                excluded.stations != '[]'
+                excluded.stations != '[]' OR excluded.vehicles != '[]'
         """,
             (
                 network["tag"],
@@ -56,13 +58,11 @@ class Sqlitesubscriber(ZMQSubscriber):
                 meta["longitude"],
                 json.dumps(meta),
                 json.dumps(station_ids),
+                json.dumps(vehicle_ids),
             ),
         )
 
         self.con.commit()
-
-        if "stations" not in network:
-            return
 
         log.info("[%s] Got %d stations" % (network["tag"], len(network["stations"])))
 
@@ -103,6 +103,79 @@ class Sqlitesubscriber(ZMQSubscriber):
             "[%s] Finished processing %d stations"
             % (network["tag"], len(network["stations"]))
         )
+
+        log.info("[%s] Got %d vehicles" % (network["tag"], len(network["vehicles"])))
+
+        data_iter = (
+            (
+                v["id"],
+                v["latitude"],
+                v["longitude"],
+                v["kind"],
+                json.dumps(
+                    {
+                        "timestamp": v["timestamp"],
+                        "extra": v["extra"],
+                    }
+                ),
+                network["tag"],
+            )
+            for v in network["vehicles"]
+        )
+
+        cursor.executemany(
+            """
+            INSERT INTO vehicles (hash, latitude, longitude, kind, stat, network_tag)
+            VALUES (?, ?, ?, ?, json(?), ?)
+            ON CONFLICT(hash) DO UPDATE SET
+                latitude=excluded.latitude,
+                longitude=excluded.longitude,
+                kind=excluded.kind,
+                stat=json(excluded.stat),
+                network_tag=excluded.network_tag
+        """,
+            data_iter,
+        )
+        self.con.commit()
+        log.info(
+            "[%s] Finished processing %d vehicles"
+            % (network["tag"], len(network["vehicles"]))
+        )
+
+        # Now its probably a good time to clean up orphaned vehicles and
+        # stations ...
+        # XXX: this could be an update trigger on networks
+        cursor.execute(
+            """
+            DELETE FROM stations
+            WHERE network_tag = ?
+              AND hash NOT IN (
+                SELECT value FROM networks, json_each(networks.stations)
+                WHERE networks.tag = ?
+            );
+         """,(network['tag'], network['tag'], ))
+
+        log.info(
+            "[%s] GC %d stations"
+            % (network["tag"], cursor.rowcount)
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM vehicles
+            WHERE network_tag = ?
+              AND hash NOT IN (
+                SELECT value FROM networks, json_each(networks.vehicles)
+                WHERE networks.tag = ?
+            );
+         """,(network['tag'], network['tag'], ))
+
+        log.info(
+            "[%s] GC %d vehicles"
+            % (network["tag"], cursor.rowcount)
+        )
+
+        self.con.commit()
 
 
 def main(args):
