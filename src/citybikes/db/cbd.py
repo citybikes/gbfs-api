@@ -31,12 +31,14 @@ class CBD:
             """
             SELECT s.*
             FROM stations s
-            JOIN networks n ON n.tag = s.network_tag
-            JOIN json_each(n.stations) AS j ON j.value = s.hash
-            WHERE s.network_tag = ?
+            WHERE network_tag = ?
+              AND hash IN (
+                SELECT value FROM networks
+                  JOIN json_each(networks.stations) ON networks.tag = ?
+            )
             ORDER BY hash
         """,
-            (uid, ),
+            (uid, uid, ),
         )
 
         stations = map(lambda r: Station(**r), await cur.fetchall())
@@ -47,12 +49,15 @@ class CBD:
             """
             SELECT v.*
             FROM vehicles v
-            JOIN networks n ON n.tag = v.network_tag
-            JOIN json_each(n.vehicles) AS j ON j.value = v.hash
-            WHERE v.network_tag = ?
+            WHERE network_tag = ?
+              AND hash IN (
+                SELECT value FROM networks
+                  JOIN json_each(networks.vehicles) ON networks.tag = ?
+            )
             ORDER BY hash
+
         """,
-            (uid, ),
+            (uid, uid, ),
         )
 
         vehicles = map(lambda r: Vehicle(**r), await cur.fetchall())
