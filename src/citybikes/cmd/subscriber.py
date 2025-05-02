@@ -90,7 +90,9 @@ class Sqlitesubscriber(ZMQSubscriber):
             INSERT INTO stations (hash, name, latitude, longitude, stat, network_tag)
             VALUES (?, ?, ?, ?, json(?), ?)
             ON CONFLICT(hash) DO UPDATE SET
-                name=excluded.name,
+                -- some networks may stop providing a name randomly
+                name=coalesce(excluded.name, name),
+                --
                 latitude=excluded.latitude,
                 longitude=excluded.longitude,
                 stat=json(excluded.stat),
