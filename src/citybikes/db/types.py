@@ -38,17 +38,29 @@ class Extra(BaseModel):
     class Meta:
         vehicle_attrs = ["ebikes", "normal_bikes", "cargo", "ecargo", "kid_bikes"]
 
-    def vehicle_counts(self):
-        counts = [(k, getattr(self, k)) for k in Extra.Meta.vehicle_attrs]
-        counts = filter(lambda kv: kv[1] is not None, counts)
-        return list(counts)
-
 
 class Stat(BaseModel):
     bikes: Optional[int] = None
     free: Optional[int] = None
     timestamp: str
     extra: Extra
+
+    def vehicle_counts(self):
+        counts = [(k, getattr(self.extra, k)) for k in Extra.Meta.vehicle_attrs]
+        counts = list(filter(lambda kv: kv[1] is not None, counts))
+
+        # XXX not all pybikes instances with ebikes include 'normal_bikes'
+        # assume that if normal_bikes missing and
+        # sum(counts) != station.stat.bikes
+        # then normal_bikes = station.stat.bikes - sum(counts)
+        if 'normal_bikes' not in [k for k, _ in counts]:
+            counted_bikes = sum(v for _, v in counts)
+            if self.bikes is not None and counted_bikes < self.bikes:
+                normal_bikes = self.bikes - counted_bikes
+                counts.append(('normal_bikes', normal_bikes))
+
+        return counts
+
 
 
 class Station(BaseModel):
