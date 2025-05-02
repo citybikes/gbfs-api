@@ -111,9 +111,29 @@ class CBD:
                     MAX(s.stat->>'extra'->>'kid_bikes' IS NOT NULL)     AS kid_bikes,
                     MAX(0)                                              AS scooter
                 FROM stations s
-                JOIN networks n ON n.tag = s.network_tag
-                JOIN json_each(n.stations) AS j ON j.value = s.hash
                 WHERE s.network_tag = ?
+
+                UNION ALL
+
+                -- handle missing normal_bikes in extra
+                SELECT
+                    MAX(s.stat->>'bikes' - s.stat->>'extra'->>'ebikes' IS NOT NULL) AS normal_bikes,
+                    MAX(0) AS ebikes,
+                    MAX(0) AS cargo,
+                    MAX(0) AS ecargo,
+                    MAX(0) AS kid_bikes,
+                    MAX(0) AS scooter
+                FROM stations s
+                WHERE s.network_tag = ?
+                  AND s.stat->>'extra'->>'normal_bikes' IS NULL
+                  -- only if sum(types) < total_bikes
+                  AND s.stat->>'bikes' > (
+                    coalesce(s.stat->>'extra'->>'normal_bikes', 0) +
+                    coalesce(s.stat->>'extra'->>'ebikes', 0) +
+                    coalesce(s.stat->>'extra'->>'cargo', 0) +
+                    coalesce(s.stat->>'extra'->>'ecargo', 0) +
+                    coalesce(s.stat->>'extra'->>'kid_bikes', 0)
+                  )
 
                 UNION ALL
 
@@ -125,8 +145,6 @@ class CBD:
                     MAX(0)                    AS kid_bikes,
                     MAX(v.kind = 'scooter')   AS scooter
                 FROM vehicles v
-                JOIN networks n ON n.tag = v.network_tag
-                JOIN json_each(n.vehicles) AS j ON j.value = v.hash
                 WHERE v.network_tag = ?
             )
 
@@ -139,7 +157,7 @@ class CBD:
                 MAX(scooter) AS scooter
             FROM bike_type_flags
         """,
-            (uid, uid),
+            (uid, uid, uid),
         )
 
         vehicle_types_q = await cur.fetchone()
