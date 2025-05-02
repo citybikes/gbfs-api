@@ -237,7 +237,7 @@ class Station2GbfsStationInfo(StationInfo):
 class Station2GbfsStationStatus(StationStatus):
     @staticmethod
     def vehicle_types(station):
-        counts = station.extra.vehicle_counts()
+        counts = station.stat.vehicle_counts()
 
         if not counts:
             return [VehicleCounts.Default(count=station.stat.bikes)]
