@@ -3,7 +3,7 @@ from datetime import datetime
 from citybikes.gbfs.constants import Vehicles as BVehicles
 from typing import Annotated, Optional, Union
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field
 
 # Set here the current version these types support. Minor can be increased
 version = "3.0"
@@ -128,8 +128,12 @@ class Version(BaseModel):
 
 
 class Dataset(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     system_id: str
     versions: list[Version]
+    # XXX extension field. Uses alias because pydantic makes _ private
+    upstream_url: Optional[str] = Field(default=None, alias="_upstream_url")
 
 
 class Manifest(BaseModel):

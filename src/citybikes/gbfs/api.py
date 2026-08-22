@@ -32,7 +32,7 @@ class Gbfs:
                 ttl=self.ttl,
                 data=await handler(request, db, **args),
             )
-            return JSONResponse(response.model_dump(exclude_none=True))
+            return JSONResponse(response.model_dump(exclude_none=True, by_alias=True))
 
         return _handler
 
