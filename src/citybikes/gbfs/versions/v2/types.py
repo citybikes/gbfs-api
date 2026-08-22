@@ -3,7 +3,7 @@ from datetime import datetime
 from citybikes.gbfs.constants import Vehicles as BVehicles
 from typing import Annotated, Optional, Union
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field
 
 # Set here the current version these types support. Minor can be increased
 version = "2.3"
@@ -59,6 +59,8 @@ class BikeStatusR(BaseModel):
 
 
 class SystemInfo(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     system_id: str
     language: str
     name: str
@@ -67,6 +69,8 @@ class SystemInfo(BaseModel):
     feed_contact_email: str
     timezone: str
     license_url: Optional[str] = None
+    # XXX extension field. Uses alias because pydantic makes _ private
+    upstream_url: Optional[str] = Field(default=None, alias="_upstream_url")
 
 
 class StationInfo(BaseModel):

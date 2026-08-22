@@ -91,6 +91,8 @@ class Gbfs(BaseGbfs):
         if network.meta.license and network.meta.license.url:
             data["license_url"] = network.meta.license.url
 
+        data["upstream_url"] = getattr(network.meta, "gbfs_href", None)
+
         return GBFS2.SystemInfo(**data)
 
     async def vehicle_types(self, request, db, uid):
