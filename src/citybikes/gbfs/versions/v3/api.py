@@ -112,22 +112,23 @@ class Gbfs(BaseGbfs):
         return GBFS3.StationStatusR(stations=list(stations))
 
     async def manifest(self, request, db):
-        tags = await db.get_tags()
+        feeds = await db.get_manifest_feeds()
 
         datasets = [
             {
-                "system_id": tag,
+                "system_id": feed["tag"],
                 "versions": [
                     {
                         "version": version,
                         "url": self.url_for(
-                            request, "/gbfs.json", uid=tag, version=version
+                            request, "/gbfs.json", uid=feed["tag"], version=version
                         ),
                     }
                     for version in request.app.VERSIONS
                 ],
+                "upstream_url": feed["gbfs_href"],
             }
-            for tag in tags
+            for feed in feeds
         ]
 
         return GBFS3.Manifest(datasets=datasets)

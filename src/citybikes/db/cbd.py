@@ -176,3 +176,13 @@ class CBD:
         """)
         rows = await cur.fetchall()
         return list(map(lambda r: r["tag"], rows))
+
+    async def get_manifest_feeds(self):
+        cur = await self.db.execute("""
+            SELECT tag,
+                   json_extract(meta, '$.gbfs_href') as gbfs_href
+            FROM networks
+            ORDER BY tag
+        """)
+        rows = await cur.fetchall()
+        return rows
