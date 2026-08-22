@@ -1,4 +1,4 @@
-from citybikes.db.types import Station, Network, Vehicle
+from citybikes.db.types import Network, Station, Vehicle
 
 
 class CBD:
@@ -41,8 +41,8 @@ class CBD:
             (uid, uid, ),
         )
 
-        stations = map(lambda r: Station(**r), await cur.fetchall())
-        return list(stations)
+        stations = [Station(**r) for r in await cur.fetchall()]
+        return stations
 
     async def get_vehicles(self, uid):
         cur = await self.db.execute(
@@ -60,8 +60,8 @@ class CBD:
             (uid, uid, ),
         )
 
-        vehicles = map(lambda r: Vehicle(**r), await cur.fetchall())
-        return list(vehicles)
+        vehicles = [Vehicle(**r) for r in await cur.fetchall()]
+        return vehicles
 
     async def network_exists(self, uid):
         cur = await self.db.execute(
@@ -175,7 +175,8 @@ class CBD:
             ORDER BY tag
         """)
         rows = await cur.fetchall()
-        return list(map(lambda r: r["tag"], rows))
+        tags = [r["tag"] for r in rows]
+        return tags
 
     async def get_manifest_feeds(self):
         cur = await self.db.execute("""

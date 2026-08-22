@@ -1,19 +1,19 @@
 class Vehicles:
-    normal_bike = {
+    normal_bike = {  # noqa: RUF012
         "vehicle_type_id": "cb:vehicle:bike",
         "form_factor": "bicycle",
         "propulsion_type": "human",
         "name": "Humble Bike",
     }
 
-    normal_kid_bike = {
+    normal_kid_bike = {  # noqa: RUF012
         "vehicle_type_id": "cb:vehicle:kid-bike",
         "form_factor": "bicycle",
         "propulsion_type": "human",
         "name": "Humble Kid Bike",
     }
 
-    electric_bike = {
+    electric_bike = {  # noqa: RUF012
         "vehicle_type_id": "cb:vehicle:ebike",
         "form_factor": "bicycle",
         "propulsion_type": "electric",
@@ -21,14 +21,14 @@ class Vehicles:
         "max_range_meters": 9000,
     }
 
-    cargo_bike = {
+    cargo_bike = {  # noqa: RUF012
         "vehicle_type_id": "cb:vehicle:cargo",
         "form_factor": "cargo_bicycle",
         "propulsion_type": "human",
         "name": "Humble Cargo Bike",
     }
 
-    electric_cargo_bike = {
+    electric_cargo_bike = {  # noqa: RUF012
         "vehicle_type_id": "cb:vehicle:ecargo",
         "form_factor": "cargo_bicycle",
         "propulsion_type": "electric",
@@ -36,7 +36,7 @@ class Vehicles:
         "max_range_meters": 9000,
     }
 
-    scooter = {
+    scooter = {  # noqa: RUF012
         "vehicle_type_id": "cb:vehicle:scooter",
         "form_factor": "scooter_standing",
         "propulsion_type": "electric",

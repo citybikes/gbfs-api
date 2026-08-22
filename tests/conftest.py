@@ -1,6 +1,6 @@
-import os
 import asyncio
 import json
+import os
 from contextlib import asynccontextmanager
 from importlib import resources
 from unittest import mock
@@ -13,7 +13,6 @@ from starlette.testclient import TestClient
 from citybikes.db import CBD
 from citybikes.db.asyncio import get_session, migrate
 from citybikes.gbfs.app import app
-
 
 DB_URI = os.getenv("TEST_DB_URI", ":memory:")
 

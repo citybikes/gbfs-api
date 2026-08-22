@@ -1,9 +1,9 @@
 from datetime import datetime
-
-from citybikes.gbfs.constants import Vehicles as BVehicles
-from typing import Annotated, Optional, Union
+from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field
+
+from citybikes.gbfs.constants import Vehicles as BVehicles
 
 # Set here the current version these types support. Minor can be increased
 version = "3.0"
@@ -14,7 +14,7 @@ type Float = Annotated[
     AfterValidator(lambda x: round(x, 6)),
 ]
 
-type p_int = Annotated[int, BeforeValidator(lambda n: max(n, 0))]
+type p_int = Annotated[int, BeforeValidator(lambda n: max(n, 0))]  # noqa: PYI042
 
 type Timestamp = Annotated[str,
     BeforeValidator(lambda t: datetime.fromisoformat(t).isoformat()),
@@ -32,7 +32,7 @@ def toi18n(text):
     return text
 
 
-type i18nL = Annotated[
+type i18nL = Annotated[  # noqa: PYI042
     list[i18n],
     BeforeValidator(toi18n),
 ]
@@ -43,7 +43,7 @@ class VehicleType(BaseModel):
     form_factor: str
     propulsion_type: str
     name: i18nL
-    max_range_meters: Optional[float] = None
+    max_range_meters: float | None = None
 
 
 class VehicleTypeCount(BaseModel):
@@ -67,8 +67,8 @@ class VehicleStatus(BaseModel):
 
     last_reported: Timestamp
 
-    current_range_meters: Optional[float] = None
-    current_fuel_percent: Optional[float] = None
+    current_range_meters: float | None = None
+    current_fuel_percent: float | None = None
 
 
 class VehicleStatusR(BaseModel):
@@ -87,8 +87,8 @@ class SystemInfo(BaseModel):
     timezone: str
     attribution_organization_name: i18nL
     attribution_url: str
-    operator: Optional[i18nL] = None
-    license_url: Optional[str] = None
+    operator: i18nL | None = None
+    license_url: str | None = None
 
 
 class StationInfo(BaseModel):
@@ -96,18 +96,18 @@ class StationInfo(BaseModel):
     name: i18nL
     lat: Float
     lon: Float
-    address: Optional[str] = None
-    post_code: Optional[str] = None
-    rental_methods: Optional[list[str]] = None
-    rental_uris: Optional[dict] = None
-    capacity: Optional[p_int] = None
+    address: str | None = None
+    post_code: str | None = None
+    rental_methods: list[str] | None = None
+    rental_uris: dict | None = None
+    capacity: p_int | None = None
 
 
 class StationStatus(BaseModel):
     station_id: str
     num_vehicles_available: p_int
     vehicle_types_available: list[VehicleTypeCount]
-    num_docks_available: Optional[p_int]
+    num_docks_available: p_int | None
     is_installed: bool
     is_renting: bool
     is_returning: bool
@@ -133,7 +133,7 @@ class Dataset(BaseModel):
     system_id: str
     versions: list[Version]
     # XXX extension field. Uses alias because pydantic makes _ private
-    upstream_url: Optional[str] = Field(default=None, alias="_upstream_url")
+    upstream_url: str | None = Field(default=None, alias="_upstream_url")
 
 
 class Manifest(BaseModel):
@@ -153,15 +153,7 @@ class Response(BaseModel):
     last_updated: Timestamp
     ttl: p_int
     version: str = version
-    data: Union[
-        Feeds,
-        SystemInfo,
-        VehicleTypes,
-        VehicleStatusR,
-        StationInfoR,
-        StationStatusR,
-        Manifest,
-    ]
+    data: Feeds | SystemInfo | VehicleTypes | VehicleStatusR | StationInfoR | StationStatusR | Manifest
 
 
 class Vehicles:
