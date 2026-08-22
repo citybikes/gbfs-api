@@ -2,9 +2,8 @@ from functools import partial
 
 from starlette.routing import Mount
 
-from citybikes.gbfs.types import GBFS2
 from citybikes.gbfs.api import Gbfs as BaseGbfs
-
+from citybikes.gbfs.types import GBFS2
 
 LANGUAGE = "en"
 
@@ -108,15 +107,15 @@ class Gbfs(BaseGbfs):
 
     async def station_information(self, request, db, uid):
         stations = await db.get_stations(uid)
-        stations = map(lambda s: GBFS2.Station2GbfsStationInfo(s), stations)
-        return GBFS2.StationInfoR(stations=list(stations))
+        stations = [GBFS2.Station2GbfsStationInfo(s) for s in stations]
+        return GBFS2.StationInfoR(stations=stations)
 
     async def station_status(self, request, db, uid):
         stations = await db.get_stations(uid)
-        stations = map(lambda s: GBFS2.Station2GbfsStationStatus(s), stations)
-        return GBFS2.StationStatusR(stations=list(stations))
+        stations = [GBFS2.Station2GbfsStationStatus(s) for s in stations]
+        return GBFS2.StationStatusR(stations=stations)
 
     async def free_bike_status(self, request, db, uid):
         vehicles = await db.get_vehicles(uid)
-        vehicles = map(lambda v: GBFS2.Vehicle2GbfsBikeStatus(v), vehicles)
-        return GBFS2.BikeStatusR(bikes=list(vehicles))
+        vehicles = [GBFS2.Vehicle2GbfsBikeStatus(v) for v in vehicles]
+        return GBFS2.BikeStatusR(bikes=vehicles)

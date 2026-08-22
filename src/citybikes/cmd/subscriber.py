@@ -1,13 +1,14 @@
-import os
-import sys
-import json
-import sqlite3
-import signal
-import logging
 import argparse
+import json
+import logging
+import os
+import signal
+import sqlite3
+import sys
+
+from citybikes.hyper.subscriber import ZMQSubscriber
 
 from citybikes.db import migrate
-from citybikes.hyper.subscriber import ZMQSubscriber
 
 DB_URI = os.getenv("DB_URI", "citybikes.db")
 ZMQ_ADDR = os.getenv("ZMQ_ADDR", "tcp://127.0.0.1:5555")

@@ -1,17 +1,14 @@
 import contextlib
 import os
 
-
 from starlette.applications import Starlette
-from starlette.routing import Mount, Route
 from starlette.responses import Response
-
+from starlette.routing import Mount, Route
 
 from citybikes.db.asyncio import CBD, get_session, migrate
-from citybikes.gbfs.versions.v3.api import Gbfs as Gbfs3
-from citybikes.gbfs.versions.v2.api import Gbfs as Gbfs2
 from citybikes.gbfs.pages import HOME
-
+from citybikes.gbfs.versions.v2.api import Gbfs as Gbfs2
+from citybikes.gbfs.versions.v3.api import Gbfs as Gbfs3
 
 DB_URI = os.getenv("DB_URI", "citybikes.db")
 

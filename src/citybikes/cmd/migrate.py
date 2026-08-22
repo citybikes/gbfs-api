@@ -1,9 +1,8 @@
+import logging
 import os
 import sys
-import logging
 
 from citybikes.db import get_session, migrate
-
 
 DB_URI = os.getenv("DB_URI", "citybikes.db")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()

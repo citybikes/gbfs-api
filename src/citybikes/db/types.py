@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, Json
 
@@ -15,33 +14,33 @@ class Meta(BaseModel):
     latitude: float
     longitude: float
     company: list[str]
-    license: Optional[License] = None
+    license: License | None = None
 
 
 class Extra(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    online: Optional[bool] = None
-    ebikes: Optional[int] = None
-    normal_bikes: Optional[int] = None
-    cargo: Optional[int] = None
-    ecargo: Optional[int] = None
-    kid_bikes: Optional[int] = None
+    online: bool | None = None
+    ebikes: int | None = None
+    normal_bikes: int | None = None
+    cargo: int | None = None
+    ecargo: int | None = None
+    kid_bikes: int | None = None
 
-    address: Optional[str] = None
-    post_code: Optional[str] = None
-    payment: Optional[list[str]] = None
-    payment_terminal: Optional[bool] = Field(alias="payment-terminal", default=None)
-    slots: Optional[int] = None
-    rental_uris: Optional[dict] = None
+    address: str | None = None
+    post_code: str | None = None
+    payment: list[str] | None = None
+    payment_terminal: bool | None = Field(alias="payment-terminal", default=None)
+    slots: int | None = None
+    rental_uris: dict | None = None
 
     class Meta:
-        vehicle_attrs = ["ebikes", "normal_bikes", "cargo", "ecargo", "kid_bikes"]
+        vehicle_attrs = ["ebikes", "normal_bikes", "cargo", "ecargo", "kid_bikes"]  # noqa: RUF012
 
 
 class Stat(BaseModel):
-    bikes: Optional[int] = None
-    free: Optional[int] = None
+    bikes: int | None = None
+    free: int | None = None
     timestamp: str
     extra: Extra
 
@@ -65,7 +64,7 @@ class Stat(BaseModel):
 
 class Station(BaseModel):
     uid: str = Field(alias="hash")
-    name: Optional[str] = None
+    name: str | None = None
     latitude: float
     longitude: float
     stat: Json[Stat]
@@ -85,8 +84,8 @@ class Network(BaseModel):
 
 class VehicleExtra(BaseModel):
     model_config = ConfigDict(extra="allow")
-    battery: Optional[float] = None
-    online: Optional[bool] = None
+    battery: float | None = None
+    online: bool | None = None
 
 
 class VehicleStat(BaseModel):

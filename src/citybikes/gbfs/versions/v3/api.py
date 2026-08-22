@@ -2,9 +2,8 @@ from functools import partial
 
 from starlette.routing import Mount
 
-from citybikes.gbfs.types import GBFS3
 from citybikes.gbfs.api import Gbfs as BaseGbfs
-
+from citybikes.gbfs.types import GBFS3
 
 LANGUAGES = ["en"]
 
@@ -98,18 +97,18 @@ class Gbfs(BaseGbfs):
 
     async def vehicle_status(self, request, db, uid):
         vehicles = await db.get_vehicles(uid)
-        vehicles = map(lambda v: GBFS3.Vehicle2GbfsVehicleStatus(v), vehicles)
-        return GBFS3.VehicleStatusR(vehicles=list(vehicles))
+        vehicles = [GBFS3.Vehicle2GbfsVehicleStatus(v) for v in vehicles]
+        return GBFS3.VehicleStatusR(vehicles=vehicles)
 
     async def station_information(self, request, db, uid):
         stations = await db.get_stations(uid)
-        stations = map(lambda s: GBFS3.Station2GbfsStationInfo(s), stations)
-        return GBFS3.StationInfoR(stations=list(stations))
+        stations = [GBFS3.Station2GbfsStationInfo(s) for s in stations]
+        return GBFS3.StationInfoR(stations=stations)
 
     async def station_status(self, request, db, uid):
         stations = await db.get_stations(uid)
-        stations = map(lambda s: GBFS3.Station2GbfsStationStatus(s), stations)
-        return GBFS3.StationStatusR(stations=list(stations))
+        stations = [GBFS3.Station2GbfsStationStatus(s) for s in stations]
+        return GBFS3.StationStatusR(stations=stations)
 
     async def manifest(self, request, db):
         feeds = await db.get_manifest_feeds()

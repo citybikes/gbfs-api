@@ -1,7 +1,7 @@
-import sqlite3
 import logging
-from importlib import resources
+import sqlite3
 from contextlib import contextmanager
+from importlib import resources
 
 log = logging.getLogger("db")
 
@@ -16,7 +16,7 @@ def get_session(*args, **kwargs):
 
 def migrate(conn):
     migrations_path = resources.files("citybikes.db") / "migrations"
-    migrations = sorted(list(migrations_path.glob("*.sql")))
+    migrations = sorted(migrations_path.glob("*.sql"))
     version = conn.execute("PRAGMA user_version").fetchone()
     version = version["user_version"]
     for migration in migrations[version:]:
@@ -24,7 +24,7 @@ def migrate(conn):
         try:
             log.info("Applying %s", migration.name)
             cur.executescript("begin;" + migration.read_text())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             log.error("Failed migration %s: %s. Bye", migration.name, e)
             cur.execute("rollback")
             return False
@@ -35,4 +35,4 @@ def migrate(conn):
 
 
 # class shortcuts
-from citybikes.db.cbd import CBD as CBD  # NOQA
+from citybikes.db.cbd import CBD as CBD
